@@ -1,5 +1,5 @@
 """Settings which change the behaviour of the service"""
-from pydantic import BaseSettings, Field, AmqpDsn, SecretStr
+from pydantic import BaseSettings, Field, AmqpDsn, SecretStr, PostgresDsn
 
 
 class ServiceSettings(BaseSettings):
@@ -135,4 +135,27 @@ class AMQPSettings(BaseSettings):
         """Configuration of the AMQP related settings"""
         
         env_file = '.amqp.env'
+        """The file from which the settings may be read"""
+        
+
+class DatabaseSettings(BaseSettings):
+    """Settings related to the connections to the geo-data server"""
+    
+    dsn: PostgresDsn = Field(
+        default=...,
+        title='PostgreSQL Database Service Name',
+        description='A uri pointing to the postgres database containing the geo data',
+        env='DATABASE_DSN'
+    )
+    """
+    PostgreSQL Database Service Name
+    
+    An URI pointing to the installation of a Postgres database which has the PostGIS extensions
+    installed and activated
+    """
+
+    class Config:
+        """Configuration of the AMQP related settings"""
+    
+        env_file = '.database.env'
         """The file from which the settings may be read"""
