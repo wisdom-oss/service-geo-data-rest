@@ -36,6 +36,17 @@ class ServiceSettings(BaseSettings):
     service
     """
     
+    log_level: str = Field(
+        default='INFO',
+        title='Logging Level',
+        description='The level of logging which the root logger will use'
+    )
+    """
+    Logging Level
+    
+    The level of logging which the root logger will be configured to
+    """
+    
     class Config:
         """Configuration of the service settings"""
         
