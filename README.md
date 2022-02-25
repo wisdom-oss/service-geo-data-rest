@@ -1,3 +1,6 @@
-# Geo Data REST
+# WISdoM - Geo Data REST Adapter
+Maintainer: [Jan Eike Suchard](mailto:jan.eike.suchard@uni-oldenburg.de)
+<hr/>
 
-This service may be used to read and write geospatial data into the geospatial database used in this project
+## Information
+This service is currently under heavy development and will only be available as development version until further notice
