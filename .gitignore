@@ -212,5 +212,5 @@ dmypy.json
 cython_debug/
 
 ### Custom ignores
-*.env
+.*.env
 
