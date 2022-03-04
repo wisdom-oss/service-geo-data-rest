@@ -13,7 +13,7 @@ from pika.spec import Basic, BasicProperties
 from settings import AMQPSettings, ServiceSettings
 
 
-class AMQPClient:
+class RPCClient:
     """An asynchronous AMQP RPC Client working with events"""
     
     __internal_messaging_lock = threading.Lock()
