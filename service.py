@@ -71,13 +71,13 @@ if __name__ == '__main__':
         logging.info('SUCCESS: The message registry appears to be running')
     # Check if the database is reachable
     logging.info('Checking the communication to the database')
-    _message_broker_available = _loop.run_until_complete(
+    _database_available = _loop.run_until_complete(
         tools.is_host_available(
             host=_database_settings.dsn.host,
             port=int(_database_settings.dsn.port)
         )
     )
-    if not _message_broker_available:
+    if not _database_available:
         logging.critical(
             'The database is not reachable. Since the database stores the necessary data the '
             'service cannot start'
