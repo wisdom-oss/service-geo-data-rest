@@ -79,8 +79,8 @@ if __name__ == '__main__':
     )
     if not _database_available:
         logging.critical(
-            'The database is not reachable. Since the database stores the necessary data the '
-            'service cannot start'
+            'The database is not reachable. Since the database stores the necessary geospatial '
+            'data served by this service the service cannot start'
         )
         sys.exit(5)
     else:
