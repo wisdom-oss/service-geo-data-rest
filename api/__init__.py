@@ -4,18 +4,33 @@ import re
 from typing import Optional
 
 import ujson as ujson
-from fastapi import FastAPI as RESTfulAPI, Request
+import yaml
+from fastapi import FastAPI as RESTfulAPI, Request, Path, HTTPException
 from starlette import status
 from starlette.responses import JSONResponse
 
-import amqp
+from amqp import RPCClient
 from models.amqp import TokenValidationRequest
+from models.geo import LayerConfiguration
 
 GEO_DATA_REST = RESTfulAPI()
 
 _logger = logging.getLogger('REST-API')
-_amqp_client: Optional[amqp.RPCClient] = None
+_amqp_client: Optional[RPCClient] = None
+_map_layers: Optional[dict[str, LayerConfiguration]] = {}
 
+
+@GEO_DATA_REST.on_event('startup')
+async def service_startup():
+    """Handle the service startup"""
+    # Try to read the layers.yaml
+    raw_layer_config = yaml.safe_load(open('layers.yaml'))
+    # Create the configurations of the layers
+    for layer_name, layer_config in raw_layer_config.items():
+        _map_layers.update(
+            {layer_name: LayerConfiguration.parse_obj(layer_config)}
+        )
+    
 
 @GEO_DATA_REST.middleware('http')
 async def check_user_scope(request: Request, next_call):
@@ -79,3 +94,20 @@ async def check_user_scope(request: Request, next_call):
             }
         )
 
+
+@GEO_DATA_REST.get(
+    path='/{layer_name}/{layer_resolution}'
+)
+async def get_layer(
+        layer_name: str = Path(default=..., title='Name of the Layer'),
+        layer_resolution: str = Path(default=..., title='Resolution of the Layer')
+):
+    # Get the configuration of the requested layer, if it exits
+    config = _map_layers.get(layer_name)
+    if config is None:
+        raise HTTPException(status_code=404, detail='Layer not configured')
+    else:
+        # Try to find the correct resolution
+
+        return config.resolutions
+    
