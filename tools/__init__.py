@@ -15,7 +15,7 @@ from sqlalchemy.engine import Inspector
 
 import database
 from exceptions import BadLayerConfigurationError
-from models.geo import LayerConfiguration
+from models.geo import LayerConfiguration, LayerResolution
 
 
 def resolve_log_level(level: str) -> int:
@@ -71,13 +71,11 @@ def check_layer_configuration(config_file: bytes | IO[bytes] | str | IO[str]):
     _config = yaml.safe_load(config_file)
     # Try to parse the configuration file into the python objects for those
     _layers = {}
-    try:
-        for layer_name, layer_config in _config.items():
-            _layers.update({layer_name: LayerConfiguration.parse_obj(layer_config)})
-    except ValidationError as config_error:
-        logging.error('Unable to read the configuration for the layers while parsing "%s": \n%s',
-                         layer_name, config_error)
-        raise BadLayerConfigurationError()
+    for layer in _config:
+        try:
+            _layers.update({layer['name']: LayerConfiguration.parse_obj(layer)})
+        except ValidationError:
+            logging.error('Unable to read the configuration for the layer: %s', layer['name'])
     logging.info('The layer configuration was successfully read')
     # Now check if the database contains the specified schemas
     db_inspector: Inspector = sqlalchemy.inspect(database.engine())

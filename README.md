@@ -46,51 +46,44 @@ to validate your YAML file. (Yes, this is possible):
   "$schema": "http://json-schema.org/draft-07/schema",
   "title": "Layer Configuration Schema",
   "description": "The schema used to configure a Map Layer",
-  "properties": {
-    "layers": {
-      "type": "array",
-      "title": "A list of layers which shall be made available in the database",
-      "default": [],
-      "additionalItems": true,
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Layer Name",
-            "description": "The name of the layer is used as path parameter"
-          },
-          "db_schema": {
-            "type": "string",
-            "title": "Database Schema",
-            "description": "The schema in which the tables for the resolutions are stored"
-          },
-          "resolutions": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "title": "Layer Resolution",
-              "required": [
-                "name", "table"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "title": "Resolution name",
-                  "description": "The name of the resolution which is used as path parameter"
-                },
-                "table": {
-                  "type": "string",
-                  "title": "Table name",
-                  "description": "The name of the database table which stores the geospatial data"
-                },
-                "default": {
-                  "type": "boolean",
-                  "default": false,
-                  "title": "Default Resolution",
-                  "description": "Indicator which is used if no resolution is given as path parameter"
-                }
-              }
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "title": "Layer Name",
+        "description": "The name of the layer is used as path parameter"
+      },
+      "db_schema": {
+        "type": "string",
+        "title": "Database Schema",
+        "description": "The schema in which the tables for the resolutions are stored"
+      },
+      "resolutions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "title": "Layer Resolution",
+          "required": [
+            "name", "table"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "Resolution name",
+              "description": "The name of the resolution which is used as path parameter"
+            },
+            "table": {
+              "type": "string",
+              "title": "Table name",
+              "description": "The name of the database table which stores the geospatial data"
+            },
+            "default": {
+              "type": "boolean",
+              "default": false,
+              "title": "Default Resolution",
+              "description": "Indicator which is used if no resolution is given as path parameter"
             }
           }
         }
