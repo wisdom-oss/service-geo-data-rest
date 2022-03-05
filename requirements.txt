@@ -5,4 +5,4 @@ pika==1.2.0
 ujson==5.1.0
 SQLAlchemy==1.4.31
 PyYAML==6.0
-starlette==0.18.0
+starlette==0.17.1
