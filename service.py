@@ -5,6 +5,7 @@ import sys
 
 from pydantic import ValidationError
 
+import exceptions
 import tools
 from settings import *
 
@@ -85,5 +86,15 @@ if __name__ == '__main__':
         sys.exit(5)
     else:
         logging.info('SUCCESS: The database appears to be running')
+    # Validate that the specified layers and resolutions exist and the necessary "geodata" scope
+    # exists
+    try:
+        tools.check_layer_configuration(open('layers.yaml'))
+    except exceptions.BadLayerConfigurationError:
+        logging.critical('The layer configuration is either malformed or some entries are not in '
+                         'the database. Please check your geospatial database and your '
+                         'configuration files.')
+        sys.exit(6)
+        
     
-    
+   
