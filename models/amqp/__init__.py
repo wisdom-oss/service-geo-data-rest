@@ -3,7 +3,7 @@ from pydantic import Field
 from .. import BaseModel
 
 
-class TokenValidationRequest(BaseModel):
+class TokenIntrospectionRequest(BaseModel):
     
     action: str = Field(
         default='validate_token',
