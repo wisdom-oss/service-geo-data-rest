@@ -3,6 +3,7 @@ import asyncio
 import logging
 import sys
 
+import uvicorn
 from pydantic import ValidationError
 
 import exceptions
@@ -95,6 +96,13 @@ if __name__ == '__main__':
                          'the database. Please check your geospatial database and your '
                          'configuration files.')
         sys.exit(6)
-        
+    # Start the application
+    uvicorn.run(**{
+        "app":       "api:geo_data_rest",
+        "host":      "0.0.0.0",
+        "port":      _service_settings.http_port,
+        "log_level": "warning",
+        "workers":   1
+    })
     
    
