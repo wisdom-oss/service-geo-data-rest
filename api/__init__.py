@@ -4,7 +4,8 @@ import uuid
 from typing import Optional
 
 import yaml
-from fastapi import FastAPI, Request, Path, HTTPException
+from fastapi import FastAPI, Request, Path, HTTPException, Response
+from starlette.responses import JSONResponse
 
 from amqp import RPCClient
 from api import security
@@ -53,9 +54,9 @@ async def check_user_scope(request, call_next):
         _logger.warning('%s:%s - %s - The request did not contain a "Authorization" header. ['
                         'REJECTED REQUEST]',
                         request.client.host, request.client.port, _req_id)
-        raise HTTPException(
+        return JSONResponse(
             status_code=400,
-            detail={
+            content={
                 "error": "missing_authorization_header"
             }
         )
@@ -66,9 +67,9 @@ async def check_user_scope(request, call_next):
         _logger.warning('%s:%s - %s - The request did not contain a supported authorization '
                         'method [REJECTED REQUEST]',
                         request.client.host, request.client.port, _req_id)
-        raise HTTPException(
+        return JSONResponse(
             status_code=400,
-            detail={
+            content={
                 "error": "unsupported_authorization_method"
             }
         )
@@ -104,9 +105,9 @@ async def check_user_scope(request, call_next):
     else:
         _logger.warning('%s:%s - %s - The authorization service did not respond in time',
                         request.client.host, request.client.port, _req_id)
-        raise HTTPException(
+        return JSONResponse(
             status_code=503,
-            detail={
+            content={
                 "error": "token_introspection_timeout"
             },
             headers={
