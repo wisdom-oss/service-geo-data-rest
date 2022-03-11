@@ -65,7 +65,7 @@ async def handle_shutdown():
 
     
 @geo_data_rest.middleware('http')
-async def check_user_scope(request, call_next):
+async def check_user_scope(request: Request, call_next):
     """This middleware will validate the authorization token present in the incoming request for
     the scope that is assigned to it. This validation will be done via AMQP
     
@@ -229,8 +229,12 @@ async def get_layer(
     # Connect to the database
     _connection = database.engine().connect()
     result = _connection.execute(_query).fetchall()
-    _data: dict[str, str] = {}
+    _object_list: list[dict[str, Union[str, dict]]] = []
     for name, geojson in result:
-        _data.update({name: ujson.loads(geojson)})
-    return _data
+        _object = {
+            'name': name,
+            'geojson': ujson.loads(geojson)
+        }
+        _object_list.append(_object)
+    return _object_list
     
