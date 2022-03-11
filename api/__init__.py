@@ -1,11 +1,12 @@
 """FastAPI Implementation of the REST-Service for receiving GeoJSONs"""
 import logging
 import uuid
-from typing import Optional
+from typing import Optional, Union
 
 import ujson
 import yaml
 from fastapi import FastAPI, Request, Path, HTTPException, Response
+from fastapi.params import Query
 from sqlalchemy import text
 from starlette.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
@@ -120,7 +121,60 @@ async def check_user_scope(request, call_next):
             }
         )
     return await call_next(request)
-        
+
+
+@geo_data_rest.get(
+    path='/geo_operations/within'
+)
+async def geo_operations(
+        layer_name: str = Query(default=...),
+        layer_resolution: str = Query(default=...),
+        object_names: list[str] = Query(default=...)
+):
+    """Get the GeoJson and names of the Objects which are within the specified layer resolution
+    and the selected object(s)
+
+    :param layer_name:
+    :param layer_resolution:
+    :param object_names:
+    :return:
+    """
+    print(layer_name, layer_resolution, object_names)
+    # Get the configuration of the requested layer, if it exits
+    config = _map_layers.get(layer_name)
+    if config is None:
+        raise HTTPException(status_code=404, detail='Layer not configured')
+    # Get the resolution
+    resolution = None
+    for res in config.resolutions:
+        if res.name == layer_resolution:
+            resolution = res
+            break
+    if resolution is None:
+        raise HTTPException(status_code=404, detail='Resolution not found')
+    configs = []
+    for res in config.resolutions:
+        if res.name in resolution.contains:
+            configs.append(res)
+    _connection = database.engine().connect()
+    _contained_objects = {}
+    for conf in configs:
+        for object_name in object_names:
+            _raw_query = "SELECT name, st_asgeojson(geom) " \
+                         "FROM {} " \
+                         "WHERE st_within(geom, ( " \
+                         "SELECT geom FROM {} WHERE {}.name = '{}')) " \
+                         "ORDER BY name"
+            _query = _raw_query.format(
+                conf.table_name, resolution.table_name, resolution.table_name, object_name
+            )
+            results = _connection.execute(_query).fetchall()
+            _objects = {}
+            for name, geojson in results:
+                _objects.update({name: ujson.loads(geojson)})
+            _contained_objects.update({conf.name: _objects})
+    return _contained_objects
+
 
 @geo_data_rest.get(
     path='/{layer_name}/{layer_resolution}',

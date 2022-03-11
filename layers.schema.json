@@ -40,6 +40,12 @@
               "default": false,
               "title": "Default Resolution",
               "description": "Indicator which is used if no resolution is given as path parameter"
+            },
+            "contains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         }

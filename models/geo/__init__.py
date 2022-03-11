@@ -40,6 +40,15 @@ class LayerResolution(BaseModel):
     resolution. [default: ``False``]
     """
     
+    contains: list[str] = Field(
+        default=[],
+        alias='contains'
+    )
+    """Contained resolutions
+    
+    The names of the resolutions which are more granular than this one.
+    """
+    
 
 class LayerConfiguration(BaseModel):
     """The configuration of a layer"""
