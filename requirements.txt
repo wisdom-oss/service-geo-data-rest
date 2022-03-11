@@ -9,3 +9,4 @@ starlette==0.17.1
 uvicorn~=0.17.5
 uvloop
 psycopg2
+py_eureka_client~=0.10.5
