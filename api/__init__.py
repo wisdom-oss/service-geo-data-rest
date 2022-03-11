@@ -10,12 +10,14 @@ from fastapi.params import Query
 from sqlalchemy import text
 from starlette.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
+from py_eureka_client.eureka_client import EurekaClient
 
 import database
 from amqp import RPCClient
 from api import security
 from models.amqp import TokenIntrospectionRequest
 from models.geo import LayerConfiguration
+from settings import ServiceSettings, ServiceRegistrySettings
 
 geo_data_rest = FastAPI()
 geo_data_rest.add_middleware(GZipMiddleware, minimum_size=50)
@@ -23,19 +25,43 @@ geo_data_rest.add_middleware(GZipMiddleware, minimum_size=50)
 _logger = logging.getLogger('REST-API')
 _map_layers: Optional[dict[str, LayerConfiguration]] = {}
 _amqp_client = RPCClient()
+_service_registry_client: Optional[EurekaClient] = None
 
 
 @geo_data_rest.on_event('startup')
 async def service_startup():
     """Handle the service startup"""
     # Enable the global setup of the amqp client
-    global _map_layers
+    global _map_layers, _service_registry_client
     # Try to read the layers.yaml
     raw_layer_config = yaml.safe_load(open('layers.yaml'))
     # Create the configurations of the layers
     for layer in raw_layer_config:
         _map_layers.update({layer['name']: LayerConfiguration.parse_obj(layer)})
+    # Read the neccessary configurations
+    _service_settings = ServiceSettings()
+    _registry_settings = ServiceRegistrySettings()
+    # Register the worker at the service registry
+    _service_registry_client = EurekaClient(
+        app_name=_service_settings.name,
+        eureka_server='http://{}:{}'.format(_registry_settings.host, _registry_settings.port),
+        instance_port=_service_settings.http_port,
+        should_discover=False,
+        should_register=True,
+        renewal_interval_in_secs=1,
+        duration_in_secs=5
+    )
+    _service_registry_client.start()
+    _service_registry_client.status_update('UP')
     _logger.info('API is now ready to accept requests')
+    
+    
+@geo_data_rest.on_event('shutdown')
+async def handle_shutdown():
+    """Handle the service shutdown"""
+    global _service_registry_client
+    # Deregister the client
+    _service_registry_client.stop()
 
     
 @geo_data_rest.middleware('http')
