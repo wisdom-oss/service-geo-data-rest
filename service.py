@@ -60,7 +60,7 @@ if __name__ == '__main__':
     _message_broker_available = _loop.run_until_complete(
         tools.is_host_available(
             host=_amqp_settings.dsn.host,
-            port=int(_amqp_settings.dsn.port)
+            port=int(_amqp_settings.dsn.port) if _amqp_settings.dsn.port is not None else 5672
         )
     )
     if not _message_broker_available:
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     _database_available = _loop.run_until_complete(
         tools.is_host_available(
             host=_database_settings.dsn.host,
-            port=int(_database_settings.dsn.port)
+            port=5432 if _database_settings.dsn.port is None else int(_database_settings.dsn.port)
         )
     )
     if not _database_available:

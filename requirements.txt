@@ -6,3 +6,6 @@ ujson==5.1.0
 SQLAlchemy==1.4.31
 PyYAML==6.0
 starlette==0.17.1
+uvicorn~=0.17.5
+uvloop
+psycopg2

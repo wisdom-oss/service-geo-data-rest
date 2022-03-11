@@ -35,6 +35,7 @@ async def service_startup():
     # Create the configurations of the layers
     for layer in raw_layer_config:
         _map_layers.update({layer['name']: LayerConfiguration.parse_obj(layer)})
+    _logger.info('API is now ready to accept requests')
 
     
 @geo_data_rest.middleware('http')
