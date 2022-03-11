@@ -3,16 +3,21 @@ import logging
 import uuid
 from typing import Optional
 
+import ujson
 import yaml
 from fastapi import FastAPI, Request, Path, HTTPException, Response
+from sqlalchemy import text
 from starlette.responses import JSONResponse
+from starlette.middleware.gzip import GZipMiddleware
 
+import database
 from amqp import RPCClient
 from api import security
 from models.amqp import TokenIntrospectionRequest
 from models.geo import LayerConfiguration
 
 geo_data_rest = FastAPI()
+geo_data_rest.add_middleware(GZipMiddleware, minimum_size=50)
 
 _logger = logging.getLogger('REST-API')
 _map_layers: Optional[dict[str, LayerConfiguration]] = {}
@@ -129,7 +134,22 @@ async def get_layer(
     config = _map_layers.get(layer_name)
     if config is None:
         raise HTTPException(status_code=404, detail='Layer not configured')
-    else:
-        # Try to find the correct resolution
-        return config.resolutions
+    # Get the resolution
+    resolution = None
+    for res in config.resolutions:
+        if res.name == layer_resolution:
+            resolution = res
+            break
+    if resolution is None:
+        raise HTTPException(status_code=404, detail='Resolution not found')
+    # Access the table and get the name and geojson contents
+    _raw_query = 'SELECT name, st_asgeojson(geom) as geojson from {}'
+    _query = text(_raw_query.format(resolution.table_name))
+    # Connect to the database
+    _connection = database.engine().connect()
+    result = _connection.execute(_query).fetchall()
+    _data: dict[str, str] = {}
+    for name, geojson in result:
+        _data.update({name: ujson.loads(geojson)})
+    return _data
     
