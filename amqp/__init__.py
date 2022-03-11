@@ -46,6 +46,8 @@ class RPCClient:
             'connection_name': self.name,
             'service_name':    self.__service_settings.name
         }
+        # Disable pikas logging
+        logging.getLogger("pika").setLevel(logging.WARNING)
         # Create a new Blocking Connection
         self.__connection = pika.BlockingConnection(_amqp_params)
         # Open a new channel to the message broker
@@ -61,6 +63,7 @@ class RPCClient:
             target=self.__process_new_messages,
             daemon=True
         )
+        self.__processing_thread.start()
     
     def __process_new_messages(self):
         """Process new messages while consuming messages"""

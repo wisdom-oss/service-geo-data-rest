@@ -1,47 +1,3 @@
-# WISdoM - Geo Data REST Adapter
-Maintainer: [Jan Eike Suchard](mailto:jan.eike.suchard@uni-oldenburg.de)
-<hr/>
-
-## Information
-This service is currently under heavy development and will only be available as development version until further notice
-
-## Running the service
-For running this service you need the following things:
-- Docker
-- (optional) Docker Compose
-- A PostGIS-enabled PostgreSQL database
-
-Furthermore, you need to set the following environment variables:
-- AMQP_DSN
-- SERVICE_REGISTRY_HOST
-- DATABASE_DSN
-
-#### Layer Configuration
-To use this service you currently need to create a `layers.yaml` file which contains the 
-configuration of the layers which are available for serving. The configuration file may look 
-like [this](./layers.example.yaml):
-<details>
-    <summary>Click to see example file</summary>
-
-```yaml
-layers:
-  - name: example-layer
-    db_schema: public
-    resolutions:
-      - name: municipalities
-        table: example_municipalities
-      - name: districs
-        table: example_districts
-```
-</details>
-
-When writing your own configuration files you are able to use the following [JSON Schema](./layers.schema.json)
-to validate your YAML file. (Yes, this is possible):
-
-<details>
-    <summary>Click to see the JSON Schema</summary>
-
-```json
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "title": "Layer Configuration Schema",
@@ -91,6 +47,3 @@ to validate your YAML file. (Yes, this is possible):
     }
   }
 }
-```
-</details>
-

@@ -39,7 +39,8 @@ class ServiceSettings(BaseSettings):
     log_level: str = Field(
         default='INFO',
         title='Logging Level',
-        description='The level of logging which the root logger will use'
+        description='The level of logging which the root logger will use',
+        env='LOG_LEVEL'
     )
     """
     Logging Level
@@ -115,20 +116,6 @@ class AMQPSettings(BaseSettings):
     AMQP Authorization Service Exchange
     
     The exchange which is bound by the authorization service, defaults to `authorization-service`
-    """
-    
-    client_secret: SecretStr = Field(
-        default=...,
-        title='Client secret',
-        description='The client secret used for authorizing this service at the authorization '
-                    'service',
-        env='AMQP_CLIENT_SECRET'
-    )
-    """
-    AMQP Client Secret
-    
-    The client secret used as a part of the authorization flow at the authorization service for
-    making calls to it
     """
     
     class Config:

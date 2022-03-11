@@ -1,4 +1,8 @@
 pydantic==1.9.0
 python-dotenv==0.19.2
-fastapi==0.74.1
+fastapi==0.75.0
 pika==1.2.0
+ujson==5.1.0
+SQLAlchemy==1.4.31
+PyYAML==6.0
+starlette==0.17.1

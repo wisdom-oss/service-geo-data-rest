@@ -1,81 +1,155 @@
 """FastAPI Implementation of the REST-Service for receiving GeoJSONs"""
 import logging
-import re
+import uuid
 from typing import Optional
 
-import ujson as ujson
-from fastapi import FastAPI as RESTfulAPI, Request
-from starlette import status
+import ujson
+import yaml
+from fastapi import FastAPI, Request, Path, HTTPException, Response
+from sqlalchemy import text
 from starlette.responses import JSONResponse
+from starlette.middleware.gzip import GZipMiddleware
 
-import amqp
-from models.amqp import TokenValidationRequest
+import database
+from amqp import RPCClient
+from api import security
+from models.amqp import TokenIntrospectionRequest
+from models.geo import LayerConfiguration
 
-GEO_DATA_REST = RESTfulAPI()
+geo_data_rest = FastAPI()
+geo_data_rest.add_middleware(GZipMiddleware, minimum_size=50)
 
 _logger = logging.getLogger('REST-API')
-_amqp_client: Optional[amqp.RPCClient] = None
+_map_layers: Optional[dict[str, LayerConfiguration]] = {}
+_amqp_client = RPCClient()
 
 
-@GEO_DATA_REST.middleware('http')
-async def check_user_scope(request: Request, next_call):
+@geo_data_rest.on_event('startup')
+async def service_startup():
+    """Handle the service startup"""
+    # Enable the global setup of the amqp client
+    global _map_layers
+    # Try to read the layers.yaml
+    raw_layer_config = yaml.safe_load(open('layers.yaml'))
+    # Create the configurations of the layers
+    for layer in raw_layer_config:
+        _map_layers.update({layer['name']: LayerConfiguration.parse_obj(layer)})
+
+    
+@geo_data_rest.middleware('http')
+async def check_user_scope(request, call_next):
     """This middleware will validate the authorization token present in the incoming request for
     the scope that is assigned to it. This validation will be done via AMQP
     
     :param request: The incoming request
-    :param next_call: The next thing that should happen
+    :param call_next: The next thing that should happen
     :return: The response
     """
     # Access the request headers
     headers = request.headers
-    # Check if the headers contain an Authorization header
-    authorization_header_present = True if headers.get('Authorization', None) is not None else False
-    if not authorization_header_present:
-        # Since there was no authorization header present return an error response
+    # Check for a present request id and use it for logging purposes
+    _req_id = headers.get('X-Request-ID', str(uuid.uuid4())).replace('-', '')
+    _logger.info('%s:%s - %s - Received new request for geospatial data',
+                 request.client.host, request.client.port, _req_id)
+    _logger.info('%s:%s - %s - Checking the request for a valid Bearer Token',
+                 request.client.host, request.client.port, _req_id)
+    # Check if the headers contain the 'Authorization' header
+    _authorization_header: Optional[str] = request.headers.get('Authorization', None)
+    if _authorization_header is None:
+        _logger.warning('%s:%s - %s - The request did not contain a "Authorization" header. ['
+                        'REJECTED REQUEST]',
+                        request.client.host, request.client.port, _req_id)
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            headers={
-                'WWW-Authenticate': 'Bearer'
-            },
+            status_code=400,
             content={
-                'error': 'no_auth_information_present'
+                "error": "missing_authorization_header"
             }
         )
-    # Since a header was found, try to extract the token if a token is present via regex
-    regex = r"[Bb]earer ([0-9a-fA-F]{8}\b-(?:[0-9a-fA-F]{4}\b-){3}[0-9a-fA-F]{12})"
-    header_value = headers.get('Authorization')
-    if match := re.match(regex, header_value):
-        # Get the token
-        token = match.group(1)
-        # Create a new validation request
-        _validation_request = TokenValidationRequest(
-            bearer_token=token
+    _logger.info('%s:%s - %s - Found the "Authorization" header in the request',
+                 request.client.host, request.client.port, _req_id)
+    # Check if the header value contains the value "Bearer"
+    if not ("Bearer" or "bearer") in _authorization_header:
+        _logger.warning('%s:%s - %s - The request did not contain a supported authorization '
+                        'method [REJECTED REQUEST]',
+                        request.client.host, request.client.port, _req_id)
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "unsupported_authorization_method"
+            }
         )
-        _id = _amqp_client.send_message(_validation_request.json(by_alias=True))
-        # Wait for the response to be received
-        if _amqp_client.message_events[_id].wait():
-            # Load the response
-            _validation_response: dict = ujson.loads(_amqp_client.responses[_id])
-            if ('active' in _validation_response) and _validation_response['active'] is True:
-                response = await next_call(request)
-                return response
-            else:
-                return JSONResponse(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    content={
-                        'error': 'missing_permissions',
-                        'description': 'The authorized user has no permissions to access this '
-                                       'resource'
-                    }
-                )
+    # Remove the authorization method from the header value
+    _possible_token = _authorization_header.replace('Bearer', '').strip()
+    _logger.debug('%s:%s - %s - Extracted possible bearer token from header: %s',
+                  request.client.host, request.client.port, _req_id, _possible_token)
+    # Try to parse the token into a UUID, since the tokens created by the authorization service
+    # are uuids
+    try:
+        uuid.UUID(_possible_token)
+    except ValueError:
+        _logger.warning('%s:%s - %s - The bearer token is not in the correct format [REJECTED '
+                        'REQUEST]',
+                        request.client.host, request.client.port, _req_id)
+    _logger.info('%s:%s - %s - The bearer token present in the headers seems to be correctly '
+                 'formatted',
+                 request.client.host, request.client.port, _req_id)
+    _logger.info('%s:%s - %s - Requesting Token Introspection from the authorization service',
+                 request.client.host, request.client.port, _req_id)
+    # Create a new token introspection request
+    _introspection_request = TokenIntrospectionRequest(
+        bearer_token=_possible_token
+    )
+    # Transmit the request
+    _id = _amqp_client.send_message(_introspection_request.json(by_alias=True))
+    _logger.info('%s:%s - %s - Waiting for response from the authorization service',
+                 request.client.host, request.client.port, _req_id)
+    # Wait for a maximum of 10s for the response
+    if _amqp_client.message_events[_id].wait(timeout=10):
+        _logger.info('%s:%s - %s - Received a response from the authorization service',
+                     request.client.host, request.client.port, _req_id)
     else:
+        _logger.warning('%s:%s - %s - The authorization service did not respond in time',
+                        request.client.host, request.client.port, _req_id)
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            headers={
-                'WWW-Authenticate': 'Bearer'
-            },
+            status_code=503,
             content={
-                'error': 'no_auth_information_present'
+                "error": "token_introspection_timeout"
+            },
+            headers={
+                'Retry-After': '30'
             }
         )
+    return await call_next(request)
+        
 
+@geo_data_rest.get(
+    path='/{layer_name}/{layer_resolution}',
+    status_code=200
+)
+async def get_layer(
+        layer_name: str = Path(default=..., title='Name of the Layer'),
+        layer_resolution: str = Path(default=..., title='Resolution of the Layer')
+):
+    # Get the configuration of the requested layer, if it exits
+    config = _map_layers.get(layer_name)
+    if config is None:
+        raise HTTPException(status_code=404, detail='Layer not configured')
+    # Get the resolution
+    resolution = None
+    for res in config.resolutions:
+        if res.name == layer_resolution:
+            resolution = res
+            break
+    if resolution is None:
+        raise HTTPException(status_code=404, detail='Resolution not found')
+    # Access the table and get the name and geojson contents
+    _raw_query = 'SELECT name, st_asgeojson(geom) as geojson from {}'
+    _query = text(_raw_query.format(resolution.table_name))
+    # Connect to the database
+    _connection = database.engine().connect()
+    result = _connection.execute(_query).fetchall()
+    _data: dict[str, str] = {}
+    for name, geojson in result:
+        _data.update({name: ujson.loads(geojson)})
+    return _data
+    
