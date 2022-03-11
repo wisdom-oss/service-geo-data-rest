@@ -1,0 +1,191 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Geodata REST",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://wisdom-demo.uol.de/api/geodata-rest/",
+      "description": "The main demonstration server which runs on demo data"
+    }
+  ],
+  "paths": {
+    "/geo_operations/within": {
+      "get": {
+        "summary": "Geo Operations",
+        "description": "Get the GeoJson and names of the Objects which are within the specified layer resolution\nand the selected object(s)",
+        "operationId": "geo_operations_geo_operations_within_get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Layer Name",
+              "type": "string"
+            },
+            "name": "layer_name",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": {
+              "title": "Layer Resolution",
+              "type": "string"
+            },
+            "name": "layer_resolution",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": {
+              "title": "Object Names",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "name": "object_names",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "Name of the object",
+                        "required": true
+                      },
+                      "geojson": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{layer_name}/{layer_resolution}": {
+      "get": {
+        "summary": "Get Layer",
+        "operationId": "get_layer__layer_name___layer_resolution__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Name of the Layer",
+              "type": "string"
+            },
+            "name": "layer_name",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "schema": {
+              "title": "Resolution of the Layer",
+              "type": "string"
+            },
+            "name": "layer_resolution",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "Name of the object",
+                        "required": true
+                      },
+                      "geojson": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "title": "HTTPValidationError",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "title": "ValidationError",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "loc": {
+            "title": "Location",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
