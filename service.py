@@ -101,7 +101,7 @@ if __name__ == '__main__':
         "app":       "api:geo_data_rest",
         "host":      "0.0.0.0",
         "port":      _service_settings.http_port,
-        "log_level": "critical",
+        "log_level": "warning",
         "workers":   1
     })
     
