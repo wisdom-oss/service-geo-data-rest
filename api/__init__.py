@@ -263,15 +263,16 @@ async def get_layer(
     if resolution is None:
         raise HTTPException(status_code=404, detail='Resolution not found')
     # Access the table and get the name and geojson contents
-    _raw_query = 'SELECT name, st_asgeojson(geom) as geojson from {}'
+    _raw_query = 'SELECT name, key, st_asgeojson(geom) as geojson from {}'
     _query = text(_raw_query.format(resolution.table_name))
     # Connect to the database
     _connection = database.engine().connect()
     result = _connection.execute(_query).fetchall()
     _object_list: list[dict[str, Union[str, dict]]] = []
-    for name, geojson in result:
+    for name, key, geojson in result:
         _object = {
             'name':    name,
+            'key': key,
             'geojson': ujson.loads(geojson)
         }
         _object_list.append(_object)
