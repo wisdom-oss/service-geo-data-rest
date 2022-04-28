@@ -195,17 +195,17 @@ async def check_user_scope(request: Request, call_next):
 async def geo_operations(
         layer_name: str = Query(default=...),
         layer_resolution: str = Query(default=...),
-        object_names: list[str] = Query(default=...)
+        object_keys: list[str] = Query(default=...)
 ):
     """Get the GeoJson and names of the Objects which are within the specified layer resolution
     and the selected object(s)
 
     :param layer_name:
     :param layer_resolution:
-    :param object_names:
+    :param object_keys:
     :return:
     """
-    print(layer_name, layer_resolution, object_names)
+    print(layer_name, layer_resolution, object_keys)
     # Get the configuration of the requested layer, if it exits
     config = _map_layers.get(layer_name)
     if config is None:
@@ -225,14 +225,15 @@ async def geo_operations(
     _connection = database.engine().connect()
     _contained_objects = {}
     for conf in configs:
-        for object_name in object_names:
+        for object_key in object_keys:
             _raw_query = "SELECT name, st_asgeojson(geom) " \
-                         "FROM {} " \
+                         "FROM {}.{} " \
                          "WHERE st_within(geom, ( " \
-                         "SELECT geom FROM {} WHERE {}.name = '{}')) " \
+                         "SELECT geom FROM {}.{} WHERE {}.key = '{}')) " \
                          "ORDER BY name"
             _query = _raw_query.format(
-                conf.table_name, resolution.table_name, resolution.table_name, object_name
+                config.database_schema, conf.table_name, config.database_schema, resolution.table_name,
+                resolution.table_name, object_key
             )
             results = _connection.execute(_query).fetchall()
             _objects = {}
