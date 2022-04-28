@@ -160,7 +160,7 @@ async def check_user_scope(request: Request, call_next):
         _logger.warning('%s:%s - %s - The authorization service did not respond in the correct '
                         'way', request.client.host, request.client.port, _req_id)
         return JSONResponse(
-            status_code=512,
+            status_code=401,
             content={
                 'error': 'token_introspection_failed'
             }

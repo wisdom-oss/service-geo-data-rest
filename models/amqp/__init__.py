@@ -18,6 +18,6 @@ class TokenIntrospectionRequest(BaseModel):
     
     scopes: str = Field(
         default='geodata',
-        alias='scopes'
+        alias='scope'
     )
     """The scopes the token needs to access this resource"""
