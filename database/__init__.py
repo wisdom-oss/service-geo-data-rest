@@ -1,24 +1,11 @@
-"""Module for organizing database related functions and operations"""
-from sqlalchemy import create_engine
-from sqlalchemy.future import Engine
+import logging
 
-from settings import DatabaseSettings
+import sqlalchemy.engine
 
-# Always read the database settings
-_settings = DatabaseSettings()
+import configuration
 
-# Create a new database engine from the settings
-_engine = create_engine(
-    _settings.dsn,
-    pool_size=10,
-    pool_recycle=90,
-    pool_pre_ping=True
-)
-        
+_logger = logging.getLogger(__name__)
 
-def engine() -> Engine:
-    """Access the currently used engine
-    
-    :return: The currently used engine
-    """
-    return _engine
+_settings = configuration.DatabaseConfiguration()
+
+engine = sqlalchemy.engine.create_engine(_settings.dsn, pool_recycle=90)
