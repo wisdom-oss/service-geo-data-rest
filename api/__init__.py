@@ -1,280 +1,140 @@
-"""FastAPI Implementation of the REST-Service for receiving GeoJSONs"""
+"""Package containing the code which will be the API later on"""
+import datetime
+import email.utils
+import hashlib
+import http
 import logging
-import uuid
-from typing import Optional, Union
+import typing
 
+import amqp_rpc_client
+import fastapi
+import py_eureka_client.eureka_client
+import pytz as pytz
+import sqlalchemy.exc
 import ujson
 import yaml
-from amqp_rpc_client import Client as RPCClient
-from fastapi import FastAPI, Request, Path, HTTPException
-from fastapi.params import Query
-from py_eureka_client.eureka_client import EurekaClient
-from sqlalchemy import text
-from starlette.middleware.gzip import GZipMiddleware
-from starlette.responses import JSONResponse
 
+import api.handler
+import configuration
 import database
+import exceptions
+import models.internal
+import tools
 from api import security
-from models.amqp import TokenIntrospectionRequest
-from models.geo import LayerConfiguration
-from settings import ServiceSettings, ServiceRegistrySettings, AMQPSettings
 
-geo_data_rest = FastAPI()
-geo_data_rest.add_middleware(GZipMiddleware, minimum_size=50)
+# %% Global Clients
+_amqp_client: typing.Optional[amqp_rpc_client.Client] = None
+_service_registry_client: typing.Optional[py_eureka_client.eureka_client.EurekaClient] = None
 
-_logger = logging.getLogger('REST-API')
-_map_layers: Optional[dict[str, LayerConfiguration]] = {}
-_amqp_client: Optional[RPCClient] = None
-_amqp_exchange = AMQPSettings().auth_exchange
-_service_registry_client: Optional[EurekaClient] = None
+# %% API Setup
+service = fastapi.FastAPI()
+service.add_exception_handler(exceptions.APIException, api.handler.handle_api_error)
+service.add_exception_handler(fastapi.exceptions.RequestValidationError, api.handler.handle_request_validation_error)
+service.add_exception_handler(sqlalchemy.exc.IntegrityError, api.handler.handle_integrity_error)
 
+# %% Configurations
+_security_configuration = configuration.SecurityConfiguration()
 
-@geo_data_rest.on_event('startup')
-async def service_startup():
-    """Handle the service startup"""
-    # Enable the global setup of the amqp client
-    global _map_layers, _service_registry_client, _amqp_client
-    # Read the necessary configurations
-    _service_settings = ServiceSettings()
-    _registry_settings = ServiceRegistrySettings()
-    # Register the worker at the service registry
-    _service_registry_client = EurekaClient(
-        app_name=_service_settings.name,
-        eureka_server='http://{}:{}'.format(_registry_settings.host, _registry_settings.port),
-        instance_port=_service_settings.http_port,
-        should_discover=False,
-        should_register=True,
-        renewal_interval_in_secs=1,
-        duration_in_secs=5
-    )
-    _service_registry_client.start()
-    _service_registry_client.status_update('STARTING')
-    # Try to read the layers.yaml
-    raw_layer_config = yaml.safe_load(open('layers.yaml'))
-    # Create the configurations of the layers
-    for layer in raw_layer_config:
-        _map_layers.update({layer['name']: LayerConfiguration.parse_obj(layer)})
-    # == AMQP Client Setup ==
-    # Read the AMQP settings
-    _amqp_settings = AMQPSettings()
-    # Create the new client
-    _amqp_client = RPCClient(_amqp_settings.dsn)
-    # == AMQP Client Setup done
-    _service_registry_client.status_update('UP')
-    _logger.info('API is now ready to accept requests')
+# %% Preparation for layer requests
+_layer_configs = yaml.safe_load(open("./configuration/layers.yaml"))
+layers: typing.Dict[str, models.internal.LayerConfiguration] = {}
+for _layer_config in _layer_configs:
+    layers.update({_layer_config["name"]: models.internal.LayerConfiguration.parse_obj(_layer_config)})
 
+# %% Middlewares
+@service.middleware("http")
+async def etag_comparison(request: fastapi.Request, call_next):
+    """
+    A middleware which will hash the request path and all parameters transferred to this
+    microservice and will check if the hash matches the one of the ETag which was sent to the
+    microservice. Furthermore, it will take the generated hash and append it to the response to
+    allow caching
 
-@geo_data_rest.on_event('shutdown')
-async def handle_shutdown():
-    """Handle the service shutdown"""
-    global _service_registry_client
-    # Deregister the client
-    _service_registry_client.stop()
-
-
-@geo_data_rest.middleware('http')
-async def check_user_scope(request: Request, call_next):
-    """This middleware will validate the authorization token present in the incoming request for
-    the scope that is assigned to it. This validation will be done via AMQP
-    
     :param request: The incoming request
-    :param call_next: The next thing that should happen
-    :return: The response
+    :type request: fastapi.Request
+    :param call_next: The next call after this middleware
+    :type call_next: callable
+    :return: The result of the next call after this middle ware
+    :rtype: fastapi.Response
     """
-    # Access the request headers
-    headers = request.headers
-    # Check for a present request id and use it for logging purposes
-    _req_id = headers.get('X-Request-ID', uuid.uuid4().hex)
-    _logger.debug('%s:%s - %s - Received new request for geospatial data',
-                  request.client.host, request.client.port, _req_id)
-    _logger.debug('%s:%s - %s - Checking the request for a valid Bearer Token',
-                  request.client.host, request.client.port, _req_id)
-    # Check if the headers contain the 'Authorization' header
-    _authorization_header: Optional[str] = request.headers.get('Authorization', None)
-    if _authorization_header is None:
-        _logger.warning('%s:%s - %s - The request did not contain a "Authorization" header. ['
-                        'REJECTED REQUEST]',
-                        request.client.host, request.client.port, _req_id)
-        return JSONResponse(
-            status_code=400,
-            content={
-                "error": "missing_authorization_header"
-            }
+    # Access all parameters used for creating the hash
+    path = request.url.path
+    query_parameter = dict(request.query_params)
+    content_type = request.headers.get("Content-Type", "text/plain")
+
+    if content_type == "application/json":
+        try:
+            body = ujson.loads(await request.body())
+        except ValueError as error:
+            body = (await request.body()).decode("utf-8")
+    else:
+        body = (await request.body()).decode("utf-8")
+
+    # Now iterate through all query parameters and make sure they are sorted if they are lists
+    for key, value in dict(query_parameter).items():
+        # Now check if the value is a list
+        if isinstance(value, list):
+            query_parameter[key] = sorted(value)
+
+    query_dict = {
+        "request_path": path,
+        "request_query_parameter": query_parameter,
+        "request_body": body,
+    }
+    query_data = ujson.dumps(query_dict, ensure_ascii=False, sort_keys=True)
+    # Now create a hashsum of the query data
+    query_hash = hashlib.sha3_256(query_data.encode("utf-8")).hexdigest()
+    # Now access the headers of the request and check for the If-None-Match Header
+    if_none_match_value = request.headers.get("If-None-Match")
+    if_modified_since_value = request.headers.get("If-Modified-Since")
+    if if_modified_since_value is None:
+        if_modified_since_value = datetime.datetime.fromtimestamp(0, tz=pytz.UTC)
+    else:
+        if_modified_since_value = email.utils.parsedate_to_datetime(if_modified_since_value)
+    # Get the last update of the schema from which the service gets its data from
+    # TODO: Set your schema name here
+    last_database_modification = tools.get_last_schema_update("geodata", database.engine)
+    data_changed = if_modified_since_value < last_database_modification
+    if query_hash == if_none_match_value and not data_changed:
+        return fastapi.Response(status_code=304, headers={"ETag": f"{query_hash}"})
+    else:
+        response: fastapi.Response = await call_next(request)
+        response.headers.append("ETag", f"{query_hash}")
+        response.headers.append("Last-Modified", email.utils.format_datetime(last_database_modification))
+        return response
+
+
+# %% Routes
+@service.get("/{layer_name}/{layer_resolution}")
+async def scoped_hello(
+    layer_name: str = fastapi.Path(default=..., title="Name of the Layer"),
+    layer_resolution: str = fastapi.Path(default=..., title="Resolution of the Layer"),
+    user: typing.Union[models.internal.UserAccount, bool] = fastapi.Security(
+        security.is_authorized_user, scopes=[_security_configuration.scope_string_value]
+    ),
+):
+    # Try to pull the configuration of the specified layer
+    layer_config = layers.get(layer_name, None)
+    if layer_config is None:
+        raise exceptions.APIException(
+            error_code="LAYER_NOT_FOUND",
+            error_title="Layer not found",
+            error_description="The requested layer has not been configured",
+            http_status=http.HTTPStatus.NOT_FOUND,
         )
-    _logger.debug('%s:%s - %s - Found the "Authorization" header in the request',
-                  request.client.host, request.client.port, _req_id)
-    # Check if the header value contains the value "Bearer"
-    if not ("Bearer" or "bearer") in _authorization_header:
-        _logger.warning('%s:%s - %s - The request did not contain a supported authorization '
-                        'method [REJECTED REQUEST]',
-                        request.client.host, request.client.port, _req_id)
-        return JSONResponse(
-            status_code=400,
-            content={
-                "error": "unsupported_authorization_method"
-            }
+    resolution = [res for res in layer_config.resolutions if res.name == layer_resolution]
+    if len(resolution) == 0:
+        raise exceptions.APIException(
+            error_code="RESOLUTION_NOT_FOUND",
+            error_title="Layer resolution not found",
+            error_description="The requested resolution of the layer has not been configured",
+            http_status=http.HTTPStatus.NOT_FOUND,
         )
-    # Remove the authorization method from the header value
-    _possible_token = _authorization_header.replace('Bearer', '').strip()
-    # Try to parse the token into a UUID, since the tokens created by the authorization service
-    # are uuids
-    try:
-        uuid.UUID(_possible_token)
-    except ValueError:
-        _logger.warning('%s:%s - %s - The bearer token is not in the correct format [REJECTED '
-                        'REQUEST]',
-                        request.client.host, request.client.port, _req_id)
-    _logger.debug('%s:%s - %s - The bearer token present in the headers seems to be correctly '
-                  'formatted',
-                  request.client.host, request.client.port, _req_id)
-    _logger.debug('%s:%s - %s - Requesting Token Introspection from the authorization service',
-                  request.client.host, request.client.port, _req_id)
-    # Create a new token introspection request
-    _introspection_request = TokenIntrospectionRequest(
-        bearer_token=_possible_token
+    _geodata_query = "SELECT name, key, st_asgeojson(geom) from {}.{}".format(
+        layer_config.database_schema, resolution[0].table_name
     )
-    # Transmit the request
-    _id = _amqp_client.send(_introspection_request.json(by_alias=True), _amqp_exchange)
-    _logger.debug('%s:%s - %s - Waiting for response from the authorization service',
-                  request.client.host, request.client.port, _req_id)
-    # Wait for a maximum of 10s for the response
-    # Try getting the response
-    _raw_introspection_response = _amqp_client.await_response(_id, timeout=10.0)
-    if _raw_introspection_response is None:
-        _logger.debug('%s:%s - %s - The authorization service did not respond in time',
-                      request.client.host, request.client.port, _req_id)
-        return JSONResponse(
-            status_code=512,
-            content={
-                "error": "token_introspection_timeout"
-            },
-            headers={
-                'Retry-After': '10'
-            }
-        )
-    _logger.debug('%s:%s - %s - Received a response from the authorization service',
-                  request.client.host, request.client.port, _req_id)
-    # Parse the bytes to a dict
-    _introspection_response: dict = ujson.loads(_raw_introspection_response)
-    if 'active' not in _introspection_response:
-        _logger.warning('%s:%s - %s - The authorization service did not respond in the correct '
-                        'way', request.client.host, request.client.port, _req_id)
-        return JSONResponse(
-            status_code=401,
-            content={
-                'error': 'token_introspection_failed'
-            }
-        )
-    if not _introspection_response['active']:
-        _logger.warning('%s:%s - %s - The authorization service rejected the token',
-                        request.client.host, request.client.port, _req_id)
-        if _introspection_response['reason'] == 'token_error':
-            _logger.warning('%s:%s - %s - The token is invalid (either never created or expired)',
-                            request.client.host, request.client.port, _req_id)
-            return JSONResponse(
-                status_code=401,
-                content={
-                    "error": "invalid_token"
-                }
-            )
-        elif _introspection_response['reason'] == 'insufficient_scope':
-            _logger.warning('%s:%s - %s - The user has no privileges to access this resource',
-                            request.client.host, request.client.port, _req_id)
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "error": "insufficient_scope"
-                }
-            )
-    return await call_next(request)
-
-
-@geo_data_rest.get(
-    path='/geo_operations/within'
-)
-async def geo_operations(
-        layer_name: str = Query(default=...),
-        layer_resolution: str = Query(default=...),
-        object_keys: list[str] = Query(default=...)
-):
-    """Get the GeoJson and names of the Objects which are within the specified layer resolution
-    and the selected object(s)
-
-    :param layer_name:
-    :param layer_resolution:
-    :param object_keys:
-    :return:
-    """
-    print(layer_name, layer_resolution, object_keys)
-    # Get the configuration of the requested layer, if it exits
-    config = _map_layers.get(layer_name)
-    if config is None:
-        raise HTTPException(status_code=404, detail='Layer not configured')
-    # Get the resolution
-    resolution = None
-    for res in config.resolutions:
-        if res.name == layer_resolution:
-            resolution = res
-            break
-    if resolution is None:
-        raise HTTPException(status_code=404, detail='Resolution not found')
-    configs = []
-    for res in config.resolutions:
-        if res.name in resolution.contains:
-            configs.append(res)
-    _connection = database.engine().connect()
-    _contained_objects = {}
-    for conf in configs:
-        for object_key in object_keys:
-            _raw_query = "SELECT name, st_asgeojson(geom) " \
-                         "FROM {}.{} " \
-                         "WHERE st_within(geom, ( " \
-                         "SELECT geom FROM {}.{} WHERE {}.key = '{}')) " \
-                         "ORDER BY name"
-            _query = _raw_query.format(
-                config.database_schema, conf.table_name, config.database_schema, resolution.table_name,
-                resolution.table_name, object_key
-            )
-            results = _connection.execute(_query).fetchall()
-            _objects = {}
-            for name, geojson in results:
-                _objects.update({name: ujson.loads(geojson)})
-            _contained_objects.update({conf.name: _objects})
-    return _contained_objects
-
-
-@geo_data_rest.get(
-    path='/{layer_name}/{layer_resolution}',
-    status_code=200
-)
-async def get_layer(
-        layer_name: str = Path(default=..., title='Name of the Layer'),
-        layer_resolution: str = Path(default=..., title='Resolution of the Layer')
-):
-    # Get the configuration of the requested layer, if it exits
-    config = _map_layers.get(layer_name)
-    if config is None:
-        raise HTTPException(status_code=404, detail='Layer not configured')
-    # Get the resolution
-    resolution = None
-    for res in config.resolutions:
-        if res.name == layer_resolution:
-            resolution = res
-            break
-    if resolution is None:
-        raise HTTPException(status_code=404, detail='Resolution not found')
-    # Access the table and get the name and geojson contents
-    _raw_query = 'SELECT name, key, st_asgeojson(geom) as geojson from {}.{}'
-    _query = text(_raw_query.format(config.database_schema, resolution.table_name))
-    # Connect to the database
-    _connection = database.engine().connect()
-    result = _connection.execute(_query).fetchall()
-    _object_list: list[dict[str, Union[str, dict]]] = []
-    for name, key, geojson in result:
-        _object = {
-            'name':    name,
-            'key': key,
-            'geojson': ujson.loads(geojson)
-        }
-        _object_list.append(_object)
-    return _object_list
+    query_result = database.engine.execute(sqlalchemy.text(_geodata_query)).all()
+    objects = []
+    for name, key, geojson in query_result:
+        objects.append({"name": name, "key": key, "geojson": ujson.loads(geojson)})
+    return objects

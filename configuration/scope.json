@@ -1,0 +1,6 @@
+{
+  "$schema": "https://raw.githubusercontent.com/wisdom-oss/documentation/main/schemas/service-scope.schema.json",
+  "name": "Geo Data Scope",
+  "description": "This scope allows the access to the geospatial data stored in the project",
+  "scopeStringValue": "geodata"
+}
