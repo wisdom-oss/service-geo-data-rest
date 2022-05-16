@@ -39,3 +39,12 @@ class TokenIntrospectionFailure(str, enum.Enum):
 
     MISSING_PRIVILEGES = "MISSING_PRIVILEGES"
     """The scopes associated to this token are not matching the one required to access this endpoint"""
+
+
+class Resolution(str, enum.Enum):
+    """The resolutions by name mapped to the length of the keys"""
+
+    state = "state"
+    region = "region"
+    administration = "administration"
+    municipal = "municipal"

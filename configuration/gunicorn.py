@@ -133,25 +133,6 @@ def on_starting(server):
     except Exception as e:
         logging.critical("Unable to parse the service scope configuration", exc_info=e)
     del _amqp_client
-    # Now validate the layer configuration
-    _layer_configs = yaml.safe_load(open("./configuration/layers.yaml"))
-    layers: typing.Dict[str, models.internal.LayerConfiguration] = {}
-    for layer_config in _layer_configs:
-        try:
-            layers.update({layer_config["name"]: models.internal.LayerConfiguration.parse_obj(layer_config)})
-        except pydantic.ValidationError:
-            logging.critical("Unable tp read the configuration of the layer %s", layer_config["name"])
-    db_inspector: sqlalchemy.engine.Inspector = sqlalchemy.inspect(database.engine)
-    schema_names = db_inspector.get_schema_names()
-    for layer_name, layer_config in layers.items():
-        if layer_config.database_schema not in schema_names:
-            raise AttributeError(f"The schema {layer_config.database_schema} was not found in the database")
-        for layer_resolution in layer_config.resolutions:
-            if not db_inspector.has_table(layer_resolution.table_name, layer_config.database_schema):
-                raise AttributeError(
-                    f"The table {layer_config.database_schema}.{layer_resolution.table_name} was not found in "
-                    f"the database"
-                )
 
 
 def when_ready(server):
