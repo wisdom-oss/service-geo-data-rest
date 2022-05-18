@@ -38,6 +38,9 @@ service.add_middleware(starlette.middleware.gzip.GZipMiddleware, minimum_size=0)
 
 # %% Configurations
 _security_configuration = configuration.SecurityConfiguration()
+if _security_configuration.scope_string_value is None:
+    scope = models.internal.ServiceScope.parse_file("./configuration/scope.json")
+    _security_configuration.scope_string_value = scope.value
 
 # %% Custom Mappings
 key_length_mapping = {
