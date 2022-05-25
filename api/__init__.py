@@ -50,6 +50,7 @@ key_length_mapping = {
     enums.Resolution.municipal: 12,
 }
 
+
 # %% Middlewares
 @service.middleware("http")
 async def etag_comparison(request: fastapi.Request, call_next):
@@ -137,13 +138,30 @@ async def scoped_hello(
                 database.tables.shapes.c.key,
                 database.tables.shapes.c.nuts_key,
                 sqlalchemy.cast(
-                    geoalchemy2.functions.ST_AsGeoJSON(database.tables.shapes.c.geom),
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_Transform(database.tables.shapes.c.geom, 4326)
+                    ),
                     sqlalchemy.dialects.postgresql.JSONB,
                 ).label("geojson"),
             ],
             sqlalchemy.func.length(database.tables.shapes.c.key) == key_length_mapping.get(resolution),
         )
-    elif keys is not None and resolution is not None:
+    elif resolution is None:
+        shape_query = sqlalchemy.select(
+            [
+                database.tables.shapes.c.name,
+                database.tables.shapes.c.key,
+                database.tables.shapes.c.nuts_key,
+                sqlalchemy.cast(
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_Transform(database.tables.shapes.c.geom, 4326)
+                    ),
+                    sqlalchemy.dialects.postgresql.JSONB,
+                ).label("geojson"),
+            ],
+            database.tables.shapes.c.key.in_(keys),
+        )
+    else:
         regex = r""
         for key in keys:
             if len(key) < key_length_mapping.get(resolution):
@@ -157,7 +175,9 @@ async def scoped_hello(
                 database.tables.shapes.c.key,
                 database.tables.shapes.c.nuts_key,
                 sqlalchemy.cast(
-                    geoalchemy2.functions.ST_AsGeoJSON(database.tables.shapes.c.geom),
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_Transform(database.tables.shapes.c.geom, 4326)
+                    ),
                     sqlalchemy.dialects.postgresql.JSONB,
                 ).label("geojson"),
             ],
@@ -165,19 +185,6 @@ async def scoped_hello(
                 database.tables.shapes.c.key.regexp_match(regex),
                 sqlalchemy.func.length(database.tables.shapes.c.key) == key_length_mapping.get(resolution),
             ),
-        )
-    else:
-        shape_query = sqlalchemy.select(
-            [
-                database.tables.shapes.c.name,
-                database.tables.shapes.c.key,
-                database.tables.shapes.c.nuts_key,
-                sqlalchemy.cast(
-                    geoalchemy2.functions.ST_AsGeoJSON(database.tables.shapes.c.geom),
-                    sqlalchemy.dialects.postgresql.JSONB,
-                ).label("geojson"),
-            ],
-            database.tables.shapes.c.key.in_(keys),
         )
     shape_query_result = database.engine.execute(shape_query).all()
     if len(shape_query_result) == 0:
