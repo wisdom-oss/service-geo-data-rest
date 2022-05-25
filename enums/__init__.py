@@ -45,6 +45,6 @@ class Resolution(str, enum.Enum):
     """The resolutions by name mapped to the length of the keys"""
 
     state = "state"
-    region = "region"
+    district = "district"
     administration = "administration"
     municipal = "municipal"

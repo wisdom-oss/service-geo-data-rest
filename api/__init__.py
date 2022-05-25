@@ -45,7 +45,7 @@ if _security_configuration.scope_string_value is None:
 # %% Custom Mappings
 key_length_mapping = {
     enums.Resolution.state: 2,
-    enums.Resolution.region: 5,
+    enums.Resolution.district: 5,
     enums.Resolution.administration: 9,
     enums.Resolution.municipal: 12,
 }
