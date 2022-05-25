@@ -3,65 +3,28 @@ sidebar_label: api
 title: api
 ---
 
-FastAPI Implementation of the REST-Service for receiving GeoJSONs
+Package containing the code which will be the API later on
 
 
-#### service\_startup
-
-```python
-@geo_data_rest.on_event('startup')
-async def service_startup()
-```
-
-Handle the service startup
-
-
-#### handle\_shutdown
+#### etag\_comparison
 
 ```python
-@geo_data_rest.on_event('shutdown')
-async def handle_shutdown()
+@service.middleware("http")
+async def etag_comparison(request: fastapi.Request, call_next)
 ```
 
-Handle the service shutdown
+A middleware which will hash the request path and all parameters transferred to this
 
-
-#### check\_user\_scope
-
-```python
-@geo_data_rest.middleware('http')
-async def check_user_scope(request: Request, call_next)
-```
-
-This middleware will validate the authorization token present in the incoming request for
-
-the scope that is assigned to it. This validation will be done via AMQP
+microservice and will check if the hash matches the one of the ETag which was sent to the
+microservice. Furthermore, it will take the generated hash and append it to the response to
+allow caching
 
 **Arguments**:
 
-- `request`: The incoming request
-- `call_next`: The next thing that should happen
+- `request` (`fastapi.Request`): The incoming request
+- `call_next` (`callable`): The next call after this middleware
 
 **Returns**:
 
-The response
-
-#### geo\_operations
-
-```python
-@geo_data_rest.get(
-    path='/geo_operations/within'
-)
-async def geo_operations(layer_name: str = Query(default=...), layer_resolution: str = Query(default=...), object_names: list[str] = Query(default=...))
-```
-
-Get the GeoJson and names of the Objects which are within the specified layer resolution
-
-and the selected object(s)
-
-**Arguments**:
-
-- `layer_name`: 
-- `layer_resolution`: 
-- `object_names`: 
+`fastapi.Response`: The result of the next call after this middle ware
 

@@ -1,15 +1,59 @@
 ---
-sidebar_label: geo
-title: models.geo
+sidebar_label: internal
+title: models.internal
 ---
 
-Module containing models related to the geo data
+## ServiceScope Objects
+
+```python
+class ServiceScope(__BaseModel)
+```
+
+#### name
+
+The name of the scope this service uses
+
+
+#### description
+
+The description of the scope this service uses
+
+
+#### value
+
+The string by which this scope is identifiable in a OAuth 2.0 scope string
+
+
+## UserAccount Objects
+
+```python
+class UserAccount(__BaseModel)
+```
+
+#### id
+
+Internal Account ID
+
+
+#### first\_name
+
+The first name of the user who is the owner of the account
+
+
+#### last\_name
+
+The last name of the user who is the owner of the account
+
+
+#### username
+
+The username of the account
 
 
 ## LayerResolution Objects
 
 ```python
-class LayerResolution(BaseModel)
+class LayerResolution(__BaseModel)
 ```
 
 Model describing how a layer resolution is created
@@ -47,7 +91,7 @@ The names of the resolutions which are more granular than this one.
 ## LayerConfiguration Objects
 
 ```python
-class LayerConfiguration(BaseModel)
+class LayerConfiguration(__BaseModel)
 ```
 
 The configuration of a layer

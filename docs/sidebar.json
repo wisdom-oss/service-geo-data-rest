@@ -2,13 +2,13 @@
   "items": [
     {
       "items": [
-        "amqp/__init__"
-      ],
-      "label": "amqp",
-      "type": "category"
-    },
-    {
-      "items": [
+        {
+          "items": [
+            "api/handler/__init__"
+          ],
+          "label": "api.handler",
+          "type": "category"
+        },
         {
           "items": [
             "api/security/__init__"
@@ -23,9 +23,25 @@
     },
     {
       "items": [
-        "database/__init__"
+        "configuration/__init__",
+        "configuration/gunicorn"
+      ],
+      "label": "configuration",
+      "type": "category"
+    },
+    {
+      "items": [
+        "database/__init__",
+        "database/tables"
       ],
       "label": "database",
+      "type": "category"
+    },
+    {
+      "items": [
+        "enums/__init__"
+      ],
+      "label": "enums",
       "type": "category"
     },
     {
@@ -37,30 +53,11 @@
     },
     {
       "items": [
-        {
-          "items": [
-            "models/amqp/__init__"
-          ],
-          "label": "models.amqp",
-          "type": "category"
-        },
-        {
-          "items": [
-            "models/geo/__init__"
-          ],
-          "label": "models.geo",
-          "type": "category"
-        },
-        "models/__init__"
+        "models/__init__",
+        "models/amqp",
+        "models/internal"
       ],
       "label": "models",
-      "type": "category"
-    },
-    {
-      "items": [
-        "settings/__init__"
-      ],
-      "label": "settings",
       "type": "category"
     },
     {
@@ -69,8 +66,7 @@
       ],
       "label": "tools",
       "type": "category"
-    },
-    "service"
+    }
   ],
   "label": "Reference",
   "type": "category"
