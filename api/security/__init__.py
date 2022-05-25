@@ -9,6 +9,7 @@ import ujson
 import enums
 import exceptions
 import models.internal
+import models.amqp
 import configuration
 
 # %% OAuth 2.0 Scheme Setup
@@ -24,7 +25,7 @@ _amqp_settings = configuration.AMQPConfiguration()
 
 
 # %% Clients needed for the security
-__amqp_client__ = amqp_rpc_client.Client(_amqp_settings.dsn)
+__amqp_client = amqp_rpc_client.Client(_amqp_settings.dsn)
 __logger = logging.getLogger("security")
 
 
@@ -45,15 +46,20 @@ def is_authorized_user(
     :rtype: bool
     :raises exceptions.APIException: The user is not authorized to access this service
     """
+    if access_token is None:
+        raise exceptions.APIException(
+            error_code="INVALID_TOKEN",
+            error_title="Invalid Bearer Token",
+            error_description="The request did not contain the any credentials to allow processing this request",
+            http_status=http.HTTPStatus.BAD_REQUEST,
+        )
     # Prepare the request
-    introspection_request = {
-        "action": enums.AMQPAction.CHECK_TOKEN_SCOPE,
-        "token": access_token,
-        "scopes": scopes.scopes,
-    }
+    introspection_request = models.amqp.TokenIntrospectionRequest(bearer_token=access_token, scope=scopes.scope_str)
     # Send the request and wait a max amount of 10 seconds until the response needs to be returned
-    introspection_id = __amqp_client__.send(ujson.dumps(introspection_request), _amqp_settings.authorization_exchange)
-    introspection_response_bytes = __amqp_client__.await_response(introspection_id, 10)
+    introspection_id = __amqp_client.send(
+        introspection_request.json(by_alias=True), _amqp_settings.authorization_exchange
+    )
+    introspection_response_bytes = __amqp_client.await_response(introspection_id, 10)
     if introspection_response_bytes is None:
         raise exceptions.APIException(
             error_code="TOKEN_VALIDATION_TIMEOUT",
@@ -62,6 +68,7 @@ def is_authorized_user(
             http_status=http.HTTPStatus.REQUEST_TIMEOUT,
         )
     # Try to read the response
+    print(introspection_response_bytes)
     token = models.internal.TokenIntrospection.parse_raw(introspection_response_bytes)
     if not token.active:
         if token.reason == enums.TokenIntrospectionFailure.INVALID_TOKEN:

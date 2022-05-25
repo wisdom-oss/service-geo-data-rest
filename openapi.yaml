@@ -1,0 +1,101 @@
+openapi: "3.0.2"
+info:
+  title: "Geodata REST"
+  version: "1.0"
+servers:
+- url: "/api/geodata-rest/"
+components:
+  schemas:
+    Point3D:
+      type: array
+      description: Point in 3D space
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#id2
+      minItems: 2
+      maxItems: 3
+      items:
+        type: number
+    Geometry:
+      type: object
+      description: GeoJSon geometry
+      required:
+        - type
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#geometry-objects
+      properties:
+        type:
+          type: string
+          enum:
+            - MultiPolygon
+          description: the geometry type
+    MultiPolygon:
+      type: object
+      description: GeoJSon geometry
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#id6
+      allOf:
+        - $ref: "#/components/schemas/Geometry"
+        - properties:
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Point3D'
+paths:
+  /:
+    get:
+      description: |
+        Get an array containing the specified shapes of the specified resolution
+        At least one of the query parameters are required. Therefore the specification in the
+        file is set up as object using form encoding style and exploding multiple query params
+      parameters:
+        - in: query
+          name: resolution
+          schema:
+            type: string
+            enum:
+              - municipal
+              - administration
+              - district
+              - state
+          style: form
+          explode: true
+        - in: query
+          name: key
+          schema:
+            type: array
+            example:
+              - "03"
+              - "034579501501"
+            items:
+              type: string
+              pattern: ^\d{1,12}$
+          style: form
+          explode: true
+
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the shape
+                    key:
+                      type: string
+                      description: The identifier key of the shape
+                    nuts_key:
+                      type: string
+                      description: The statistical key of the shape
+                    geojson:
+                      $ref: '#/components/schemas/MultiPolygon'
+        204:
+          description: The filter returned no objects

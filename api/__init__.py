@@ -3,20 +3,23 @@ import datetime
 import email.utils
 import hashlib
 import http
-import logging
 import typing
 
 import amqp_rpc_client
 import fastapi
+import geoalchemy2.functions
 import py_eureka_client.eureka_client
 import pytz as pytz
 import sqlalchemy.exc
+import sqlalchemy.dialects
+import starlette.middleware.gzip
 import ujson
-import yaml
 
 import api.handler
 import configuration
 import database
+import database.tables
+import enums
 import exceptions
 import models.internal
 import tools
@@ -31,15 +34,22 @@ service = fastapi.FastAPI()
 service.add_exception_handler(exceptions.APIException, api.handler.handle_api_error)
 service.add_exception_handler(fastapi.exceptions.RequestValidationError, api.handler.handle_request_validation_error)
 service.add_exception_handler(sqlalchemy.exc.IntegrityError, api.handler.handle_integrity_error)
+service.add_middleware(starlette.middleware.gzip.GZipMiddleware, minimum_size=0)
 
 # %% Configurations
 _security_configuration = configuration.SecurityConfiguration()
+if _security_configuration.scope_string_value is None:
+    scope = models.internal.ServiceScope.parse_file("./configuration/scope.json")
+    _security_configuration.scope_string_value = scope.value
 
-# %% Preparation for layer requests
-_layer_configs = yaml.safe_load(open("./configuration/layers.yaml"))
-layers: typing.Dict[str, models.internal.LayerConfiguration] = {}
-for _layer_config in _layer_configs:
-    layers.update({_layer_config["name"]: models.internal.LayerConfiguration.parse_obj(_layer_config)})
+# %% Custom Mappings
+key_length_mapping = {
+    enums.Resolution.state: 2,
+    enums.Resolution.district: 5,
+    enums.Resolution.administration: 9,
+    enums.Resolution.municipal: 12,
+}
+
 
 # %% Middlewares
 @service.middleware("http")
@@ -105,36 +115,78 @@ async def etag_comparison(request: fastapi.Request, call_next):
 
 
 # %% Routes
-@service.get("/{layer_name}/{layer_resolution}")
+@service.get("/")
 async def scoped_hello(
-    layer_name: str = fastapi.Path(default=..., title="Name of the Layer"),
-    layer_resolution: str = fastapi.Path(default=..., title="Resolution of the Layer"),
+    resolution: typing.Optional[enums.Resolution] = fastapi.Query(default=None),
+    keys: typing.Optional[list[str]] = fastapi.Query(default=None, alias="key", regex=r"^\d{1,12}$"),
     user: typing.Union[models.internal.UserAccount, bool] = fastapi.Security(
         security.is_authorized_user, scopes=[_security_configuration.scope_string_value]
     ),
 ):
-    # Try to pull the configuration of the specified layer
-    layer_config = layers.get(layer_name, None)
-    if layer_config is None:
+    if resolution is None and keys is None:
         raise exceptions.APIException(
-            error_code="LAYER_NOT_FOUND",
-            error_title="Layer not found",
-            error_description="The requested layer has not been configured",
-            http_status=http.HTTPStatus.NOT_FOUND,
+            error_code="INVALID_QUERY",
+            error_title="Invalid Parameter Combination",
+            error_description="Your need to set at least one query parameter for a successful request",
+            http_status=http.HTTPStatus.BAD_REQUEST,
         )
-    resolution = [res for res in layer_config.resolutions if res.name == layer_resolution]
-    if len(resolution) == 0:
-        raise exceptions.APIException(
-            error_code="RESOLUTION_NOT_FOUND",
-            error_title="Layer resolution not found",
-            error_description="The requested resolution of the layer has not been configured",
-            http_status=http.HTTPStatus.NOT_FOUND,
+    # Build the regex string
+    if keys is None:
+        shape_query = sqlalchemy.select(
+            [
+                database.tables.shapes.c.name,
+                database.tables.shapes.c.key,
+                database.tables.shapes.c.nuts_key,
+                sqlalchemy.cast(
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_Transform(database.tables.shapes.c.geom, 4326)
+                    ),
+                    sqlalchemy.dialects.postgresql.JSONB,
+                ).label("geojson"),
+            ],
+            sqlalchemy.func.length(database.tables.shapes.c.key) == key_length_mapping.get(resolution),
         )
-    _geodata_query = "SELECT name, key, st_asgeojson(geom) from {}.{}".format(
-        layer_config.database_schema, resolution[0].table_name
-    )
-    query_result = database.engine.execute(sqlalchemy.text(_geodata_query)).all()
-    objects = []
-    for name, key, geojson in query_result:
-        objects.append({"name": name, "key": key, "geojson": ujson.loads(geojson)})
-    return objects
+    elif resolution is None:
+        shape_query = sqlalchemy.select(
+            [
+                database.tables.shapes.c.name,
+                database.tables.shapes.c.key,
+                database.tables.shapes.c.nuts_key,
+                sqlalchemy.cast(
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_Transform(database.tables.shapes.c.geom, 4326)
+                    ),
+                    sqlalchemy.dialects.postgresql.JSONB,
+                ).label("geojson"),
+            ],
+            database.tables.shapes.c.key.in_(keys),
+        )
+    else:
+        regex = r""
+        for key in keys:
+            if len(key) < key_length_mapping.get(resolution):
+                regex += rf"^{key}\d+$|"
+            else:
+                regex += rf"^{key}$|"
+        regex = regex.strip("|")
+        shape_query = sqlalchemy.select(
+            [
+                database.tables.shapes.c.name,
+                database.tables.shapes.c.key,
+                database.tables.shapes.c.nuts_key,
+                sqlalchemy.cast(
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_Transform(database.tables.shapes.c.geom, 4326)
+                    ),
+                    sqlalchemy.dialects.postgresql.JSONB,
+                ).label("geojson"),
+            ],
+            sqlalchemy.and_(
+                database.tables.shapes.c.key.regexp_match(regex),
+                sqlalchemy.func.length(database.tables.shapes.c.key) == key_length_mapping.get(resolution),
+            ),
+        )
+    shape_query_result = database.engine.execute(shape_query).all()
+    if len(shape_query_result) == 0:
+        return fastapi.Response(status_code=204)
+    return shape_query_result

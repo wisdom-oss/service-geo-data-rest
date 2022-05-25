@@ -99,7 +99,7 @@ class AMQPConfiguration(pydantic.BaseSettings):
 class SecurityConfiguration(pydantic.BaseSettings):
 
     scope_string_value: typing.Optional[str] = pydantic.Field(
-        default=None,
+        default="",
         title="Required Scope String value",
         description="The scope string value of the scope which is required to access the service",
         env="CONFIG_SECURITY_SCOPE",

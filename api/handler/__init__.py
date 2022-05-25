@@ -39,6 +39,7 @@ def handle_request_validation_error(_: fastapi.requests.Request, _exception: fas
         "httpError": http.HTTPStatus.BAD_REQUEST.phrase,
         "error": configuration.ServiceConfiguration().name + f".BAD_REQUEST",
         "errorName": "Bad Request Parameters",
-        "errorDescription": "The request did not contain all necessary parameters to be executed successfully",
+        "errorDescription": "The request did not contain all necessary parameters to be executed successfully or one "
+        "of the parameters was malformed",
     }
     return fastapi.responses.UJSONResponse(content=content, status_code=http.HTTPStatus.BAD_REQUEST)
