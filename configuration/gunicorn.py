@@ -25,7 +25,7 @@ limit_request_line = 0
 limit_request_fields = 0
 limit_request_field_size = 0
 worker_class = "uvicorn.workers.UvicornWorker"
-max_requests = 20
+max_requests = 0
 timeout = 0
 
 _service_registry_client: typing.Optional[py_eureka_client.eureka_client.EurekaClient] = None
