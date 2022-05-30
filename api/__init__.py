@@ -146,6 +146,15 @@ async def scoped_hello(
             ],
             sqlalchemy.func.length(database.tables.shapes.c.key) == key_length_mapping.get(resolution),
         )
+        box_query = sqlalchemy.select(
+            [
+                sqlalchemy.cast(
+                    geoalchemy2.functions.ST_AsGeoJSON(geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)),
+                    sqlalchemy.dialects.postgresql.JSONB,
+                ).label("geojson")
+            ],
+            sqlalchemy.func.length(database.tables.shapes.c.key) == key_length_mapping.get(resolution),
+        )
     elif resolution is None:
         shape_query = sqlalchemy.select(
             [
@@ -158,6 +167,15 @@ async def scoped_hello(
                     ),
                     sqlalchemy.dialects.postgresql.JSONB,
                 ).label("geojson"),
+            ],
+            database.tables.shapes.c.key.in_(keys),
+        )
+        box_query = sqlalchemy.select(
+            [
+                sqlalchemy.cast(
+                    geoalchemy2.functions.ST_AsGeoJSON(geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)),
+                    sqlalchemy.dialects.postgresql.JSONB,
+                ).label("geojson")
             ],
             database.tables.shapes.c.key.in_(keys),
         )
@@ -186,7 +204,20 @@ async def scoped_hello(
                 sqlalchemy.func.length(database.tables.shapes.c.key) == key_length_mapping.get(resolution),
             ),
         )
+        box_query = sqlalchemy.select(
+            [
+                sqlalchemy.cast(
+                    geoalchemy2.functions.ST_AsGeoJSON(geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)),
+                    sqlalchemy.dialects.postgresql.JSONB,
+                ).label("geojson")
+            ],
+            sqlalchemy.and_(
+                database.tables.shapes.c.key.regexp_match(regex),
+                sqlalchemy.func.length(database.tables.shapes.c.key) == key_length_mapping.get(resolution),
+            ),
+        )
     shape_query_result = database.engine.execute(shape_query).all()
+    box_query_result = database.engine.execute(box_query).first()
     if len(shape_query_result) == 0:
         return fastapi.Response(status_code=204)
-    return shape_query_result
+    return {"box": box_query_result["geojson"]["coordinates"][0], "shapes": shape_query_result}
