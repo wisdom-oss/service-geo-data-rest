@@ -149,7 +149,11 @@ async def scoped_hello(
         box_query = sqlalchemy.select(
             [
                 sqlalchemy.cast(
-                    geoalchemy2.functions.ST_AsGeoJSON(geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)),
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_FlipCoordinates(
+                            geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)
+                        )
+                    ),
                     sqlalchemy.dialects.postgresql.JSONB,
                 ).label("geojson")
             ],
@@ -173,7 +177,11 @@ async def scoped_hello(
         box_query = sqlalchemy.select(
             [
                 sqlalchemy.cast(
-                    geoalchemy2.functions.ST_AsGeoJSON(geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)),
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_FlipCoordinates(
+                            geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)
+                        )
+                    ),
                     sqlalchemy.dialects.postgresql.JSONB,
                 ).label("geojson")
             ],
@@ -207,7 +215,11 @@ async def scoped_hello(
         box_query = sqlalchemy.select(
             [
                 sqlalchemy.cast(
-                    geoalchemy2.functions.ST_AsGeoJSON(geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)),
+                    geoalchemy2.functions.ST_AsGeoJSON(
+                        geoalchemy2.functions.ST_FlipCoordinates(
+                            geoalchemy2.functions.ST_Extent(database.tables.shapes.c.geom)
+                        )
+                    ),
                     sqlalchemy.dialects.postgresql.JSONB,
                 ).label("geojson")
             ],
