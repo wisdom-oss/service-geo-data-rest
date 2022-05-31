@@ -3,7 +3,7 @@ info:
   title: "Geodata REST"
   version: "1.0"
 servers:
-- url: "/api/geodata-rest/"
+- url: "/api/geodata/"
 components:
   schemas:
     Point3D:
