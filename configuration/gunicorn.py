@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import multiprocessing
 import os
 import sys
 import typing
@@ -8,15 +7,11 @@ import typing
 import amqp_rpc_client
 import py_eureka_client.eureka_client
 import pydantic
-import sqlalchemy.engine
 import ujson as ujson
-import yaml
 
 import configuration
-import database
-import exceptions
-import models.internal
 import models.amqp
+import models.internal
 import tools
 
 bind = f"0.0.0.0:{configuration.ServiceConfiguration().http_port}"
