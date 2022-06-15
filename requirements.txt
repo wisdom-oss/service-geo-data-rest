@@ -1,7 +1,7 @@
 fastapi~=0.78.0
 python-multipart
 pydantic~=1.9.1
-amqp-rpc-client~=1.2.6a1
+amqp-rpc-client~=1.2.6a4
 py-eureka-client~=0.10.5
 SQLAlchemy~=1.4.36
 geoalchemy2~=0.11.1

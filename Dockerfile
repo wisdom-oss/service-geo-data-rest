@@ -8,7 +8,7 @@ WORKDIR /service
 COPY . /service
 RUN python -m pip install -r /service/requirements.txt
 RUN python -m pip install gunicorn
-RUN python -m pip install uvicorn
+RUN python -m pip install uvicorn[standard]
 RUN ln ./configuration/gunicorn.py gunicorn.config.py
 EXPOSE $CONFIG_HTTP_PORT
 ENTRYPOINT ["gunicorn", "-cgunicorn.config.py", "api:service"]
