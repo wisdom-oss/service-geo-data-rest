@@ -26,7 +26,6 @@ import tools
 from api import security
 
 # %% Global Clients
-_amqp_client: typing.Optional[amqp_rpc_client.Client] = None
 _service_registry_client: typing.Optional[py_eureka_client.eureka_client.EurekaClient] = None
 
 # %% API Setup
