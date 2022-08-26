@@ -75,8 +75,6 @@ This initialization step will check the existence of the following variables and
 
 Furthermore, this step will use sensitive defaults on the following environment variables
 	- CONFIG_HTTP_LISTEN_PORT = 8000
-
-TODO: Add own required and optional variables to this function, if needed
 */
 func init() {
 	logger := log.WithFields(log.Fields{
@@ -116,7 +114,6 @@ func init() {
 		logger.Fatal("The required environment variable 'CONFIG_POSTGRES_PASSWORD' is not populated.")
 	}
 	// Now check if the optional variables have been set. If not set their respective default values
-	// TODO: Add checks for own optional variables, if needed
 	if !httpListenPortSet {
 		vars.HttpListenPort = "8000"
 	}
@@ -142,7 +139,6 @@ Initialization Step 4 - Check the dependency connections
 
 This initialization step will check if all dependency containers are reachable.
 
-TODO: Add checks for new dependencies
 */
 func init() {
 	// Create a logger for this step
