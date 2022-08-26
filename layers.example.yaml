@@ -1,7 +1,0 @@
-- name: example-layer
-  db_schema: public
-  resolutions:
-    - name: municipalities
-      table: example_municipalities
-    - name: districs
-      table: example_districts
