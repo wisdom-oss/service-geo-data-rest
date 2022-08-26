@@ -7,8 +7,7 @@ import (
 	"microservice/structs"
 )
 
-// TODO: Change the service name and remove the comment
-const ServiceName = "template-service"
+const ServiceName = "geo-data"
 
 var (
 	/*
