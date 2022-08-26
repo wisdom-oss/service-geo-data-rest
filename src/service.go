@@ -35,7 +35,7 @@ func main() {
 	router.Handle(
 		"/",
 		handlers.AuthorizationCheck(
-			http.HandlerFunc(handlers.BasicHandler),
+			http.HandlerFunc(handlers.MapDataHandler),
 		),
 	)
 

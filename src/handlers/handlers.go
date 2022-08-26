@@ -61,11 +61,11 @@ func PingHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 /*
-BasicHandler
+MapDataHandler
 
 This handler shows how a basic handler works and how to send back a message
 */
-func BasicHandler(w http.ResponseWriter, r *http.Request) {
+func MapDataHandler(w http.ResponseWriter, r *http.Request) {
 	logger := log.WithFields(log.Fields{
 		"middleware": true,
 		"title":      "BasicHandler",
