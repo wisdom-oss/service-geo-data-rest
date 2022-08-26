@@ -1,23 +1,185 @@
-# TODO: Extend the documentation with the information about your service
 openapi: 3.0.0
 info:
-  title: Microservice Template
-  description: This microservice template is used to allow new developers to start with a new microservice fast
-               The template is written in Golang
-  version: '1.0'
+  title: WISdoM OSS - Geo Data Rest
+  description: |
+    This microservice allows the access to geospatial data which is stored in the database
+    
+    **IMPORTANT NOTICE**  
+    This service requires, that the user accessing it was previously authorized via the authorization service and has
+    the correct scope for accessing this service. The definition of the scope is stored in the scope description file
+    as long as there is no manual replacement done. The scope description file is stored in the folder `res` in the root
+    of the repository
+
+  version: '2.0'
 
 servers:
-  - url: /
+  - url: https://wisdom-demo.uol.de/api/geodata
     description: The default API endpoint for the WISdoM demo server
+
+components:
+  securitySchemes:
+    WISdoM_Auth:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: /api/oauth/token
+          refreshUrl: /api/oauth/token
+  schemas:
+    Point:
+      type: array
+      description: Point in 3D space
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#id2
+      minItems: 2
+      maxItems: 3
+      items:
+        type: number
+    Geometry:
+      type: object
+      description: GeoJSON geometry
+      required:
+        - type
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#geometry-objects
+      properties:
+        type:
+          type: string
+          enum:
+            - MultiPolygon
+          description: the geometry type
+    MultiPolygon:
+      type: object
+      description: GeoJSon geometry
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#id6
+      allOf:
+        - $ref: "#/components/schemas/Geometry"
+        - properties:
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Point'
+
 
 paths:
   /:
     get:
-      summary: Get a test message
-      description: Hello World
+      summary: Get geospatial data from the database
+      description: |
+        Get a JSON object containing bounding box coordinates and the shapes that have been selected via the filter 
+        parameters
+      security:
+        - WISdoM_Auth:
+            - //SEE SCOPE DESCRIPTION FILE//
+      parameters:
+        - in: query
+          name: resolution
+          description: |
+            A predefined resolution level. Using this filter parameter the query will only return
+            shapes matching the resolution level.
+          schema:
+            type: string
+            enum:
+              - municipal
+              - administration
+              - district
+              - state
+        - in: query
+          name: key
+          description: |
+            One or multiple shape keys. The shape keys are oriented at the format of the [regional key](https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Glossar/regionalschluessel.html).
+            
+            <i>NOTICE: When using the shape key parameter in conjunction with the resolution filter. The keys are
+            converted into matchers for the shape keys in the resolution.</i>
+            
+            Example: Using the resolution `municipal`and the key `0301` will return all shapes in the `municipal`
+            resolution starting with `0301`. <b>Using a key longer than the resolution supports will result in an empty response</b>
+            
+            <b> Key Lengths </b>
+            <table>
+            <thead>
+            <tr>
+            <td>Resolution</td>
+            <td>Supported key length</td>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+            <td><code>municipal</code></td>
+            <td>12</td>
+            </tr>
+            <tr>
+            <td><code>administration</code></td>
+            <td>9</td>
+            </tr>
+            <tr>
+            <td><code>district</code></td>
+            <td>5</td>
+            </tr>
+            <tr>
+            <td><code>state</code></td>
+            <td>2</td>
+            </tr>
+            
+            </tbody>
+            <table>
+          schema:
+            type: array
+            items:
+              type: string
+              pattern: ^\d{1,12}$
       responses:
         200:
-          description: Hello World
+          description: Shapes and the bounding box of those shapes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  box:
+                    title: Bounding Box
+                    description: |
+                      The outer four corners of the bounding box of the shapes that have been selected.
+                    type: array
+                    minItems: 4
+                    maxItems: 4
+                    items:
+                      $ref: "#/components/schemas/Point"
+                  shapes:
+                    title: Selected Shapes
+                    description: |
+                      The shapes that have been selected by the usage of the filters.
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          title: Shape Name
+                          description: |
+                            The official name of the shape. This value may **not** be used as identifier since multiple
+                            shapes may have the same name.
+                        key:
+                          type: string
+                          title: Regional Key
+                          description: |
+                            The official regional key of the shape. This value may be used as a identifier since there
+                            is no possibility for multiple shapes with the same regional key.
+                        nuts_key:
+                          type: string
+                          title: NUTS Key
+                          description: |
+                            The NUTS code assigned to the shape. The availability of this code may vary and multiple
+                            shapes may also use the same code. **Do not use as identifier**
+                        geojson:
+                          $ref: "#/components/schemas/MultiPolygon"
+        204:
+          description: |
+            The filters removed all possible values. No shapes found
   /ping:
     get:
       summary: Ping the service to test its reachability
