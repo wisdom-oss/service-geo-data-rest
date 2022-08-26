@@ -17,6 +17,7 @@ const UnsupportedHTTPMethod = "UNSUPPORTED_METHOD"
 const DatabaseQueryError = "DATABASE_QUERY_ERROR"
 const UnprocessableEntity = "UNPROCESSABLE_ENTITY"
 const UniqueConstraintViolation = "UNIQUE_CONSTRAINT_VIOLATION"
+const InternalServiceError = "INTERNAL_SERVICE_ERROR"
 
 var errorTitle = map[string]string{
 	UnauthorizedRequest:       "Unauthorized Request",
@@ -25,6 +26,7 @@ var errorTitle = map[string]string{
 	DatabaseQueryError:        "Database Query Error",
 	UnprocessableEntity:       "Unprocessable Entity",
 	UniqueConstraintViolation: "Unique Constraint Violation",
+	InternalServiceError:      "Internal Service Error",
 }
 
 var errorDescription = map[string]string{
@@ -38,6 +40,8 @@ var errorDescription = map[string]string{
 	UnprocessableEntity: "The JSON object you sent to the service is not processable. Please check your request",
 	UniqueConstraintViolation: "The object you are trying to create already exists in the database. " +
 		"Please check your request and the documentation",
+	InternalServiceError: "An unexcepted error occurred while serving your requests. " +
+		"Please contact an administrator if the error persists",
 }
 
 var httpStatus = map[string]int{
@@ -47,6 +51,7 @@ var httpStatus = map[string]int{
 	DatabaseQueryError:        http.StatusInternalServerError,
 	UnprocessableEntity:       http.StatusUnprocessableEntity,
 	UniqueConstraintViolation: http.StatusConflict,
+	InternalServiceError:      http.StatusInternalServerError,
 }
 
 func NewRequestError(errorCode string) structs.RequestError {
