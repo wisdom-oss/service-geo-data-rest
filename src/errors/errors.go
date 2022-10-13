@@ -31,7 +31,7 @@ var errorTitle = map[string]string{
 
 var errorDescription = map[string]string{
 	UnauthorizedRequest: "The resource you tried to access requires authorization. Please check your request",
-	MissingScope: "Yu tried to access a resource which is protected by a scope. " +
+	MissingScope: "You tried to access a resource which is protected by a scope. " +
 		"Your authorization information did not contain the required scope.",
 	UnsupportedHTTPMethod: "The used HTTP method is not supported by this microservice. " +
 		"Please check the documentation for further information",
@@ -40,7 +40,7 @@ var errorDescription = map[string]string{
 	UnprocessableEntity: "The JSON object you sent to the service is not processable. Please check your request",
 	UniqueConstraintViolation: "The object you are trying to create already exists in the database. " +
 		"Please check your request and the documentation",
-	InternalServiceError: "An unexcepted error occurred while serving your requests. " +
+	InternalServiceError: "An unexpected error occurred while serving your requests. " +
 		"Please contact an administrator if the error persists",
 }
 
