@@ -34,12 +34,7 @@ func PingHost(host string, port int, timeout int) bool {
 	connectionTarget := fmt.Sprintf("%s:%d", host, port)
 	// Open a tcp connection with the parameters
 	_, connectionError := net.DialTimeout("tcp", connectionTarget, connectionTimeout)
-	if connectionError != nil {
-		return false
-	} else {
-		return true
-	}
-
+	return connectionError != nil
 }
 
 /*
