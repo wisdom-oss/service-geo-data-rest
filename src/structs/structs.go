@@ -20,6 +20,6 @@ type RequestError struct {
 type ShapeData struct {
 	Name    string           `json:"name"`
 	Key     string           `json:"key"`
-	NutsKey string           `json:"nuts_key"`
+	NutsKey string           `json:"nutsKey"`
 	GeoJSON geojson.Geometry `json:"geojson"`
 }
