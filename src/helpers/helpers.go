@@ -2,18 +2,23 @@ package helpers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"microservice/errors"
+
+	e "microservice/errors"
 )
 
-var logger = log.WithFields(log.Fields{
-	"package": "helpers",
-})
+var logger = log.WithFields(
+	log.Fields{
+		"package": "helpers",
+	},
+)
 
 /*
 PingHost
@@ -34,7 +39,12 @@ func PingHost(host string, port int, timeout int) bool {
 	connectionTarget := fmt.Sprintf("%s:%d", host, port)
 	// Open a tcp connection with the parameters
 	_, connectionError := net.DialTimeout("tcp", connectionTarget, connectionTimeout)
-	return connectionError != nil
+	if connectionError != nil {
+		logger.WithError(connectionError).Fatal("Unable to ping")
+		return false
+	} else {
+		return true
+	}
 }
 
 /*
@@ -78,12 +88,23 @@ SendRequestError
 Send a new request error using the http.ResponseWriter supplied to the function
 */
 func SendRequestError(errorCode string, w http.ResponseWriter) {
-	requestError := errors.NewRequestError(errorCode)
+	requestError := e.NewRequestError(errorCode)
 	w.Header().Set("Content-Type", "text/json")
 	w.WriteHeader(requestError.HttpStatus)
 	encodingError := json.NewEncoder(w).Encode(requestError)
 	if encodingError != nil {
 		logger.WithError(encodingError).Error("Unable to encode the request error into json")
 		return
+	}
+}
+
+// ReadEnvironmentVariable checks if the specified environment variable is populated.
+// If not an error is returned with an empty string
+func ReadEnvironmentVariable(envName string) (string, error) {
+	val, isSet := os.LookupEnv(envName)
+	if !isSet {
+		return "", errors.New("environment not populated")
+	} else {
+		return val, nil
 	}
 }
