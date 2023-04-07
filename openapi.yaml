@@ -10,7 +10,7 @@ info:
     as long as there is no manual replacement done. The scope description file is stored in the folder `res` in the root
     of the repository
 
-  version: '2.0'
+  version: '3.0'
 
 servers:
   - url: https://wisdom-demo.uol.de/api/geodata
@@ -72,9 +72,7 @@ paths:
       description: |
         Get a JSON object containing bounding box coordinates and the shapes that have been selected via the filter 
         parameters
-      security:
-        - WISdoM_Auth:
-            - //SEE SCOPE DESCRIPTION FILE//
+      
       parameters:
         - in: query
           name: resolution
