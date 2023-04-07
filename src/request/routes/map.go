@@ -127,6 +127,7 @@ func GetShapes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send the response
+	w.Header().Set("Content-Type", "application/json")
 	encodingErr := json.NewEncoder(w).Encode(res)
 	if encodingErr != nil {
 		l.Error().Err(encodingErr).Msg("error encoding response")
