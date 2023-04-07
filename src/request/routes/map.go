@@ -25,7 +25,7 @@ func GetShapes(w http.ResponseWriter, r *http.Request) {
 	var resolution enums.Resolution
 
 	if shapeKeysSet = r.URL.Query().Has("key"); shapeKeysSet {
-		shapeKeys = r.URL.Query()["shapeKeys"]
+		shapeKeys = r.URL.Query()["key"]
 	}
 
 	if resolutionSet = r.URL.Query().Has("resolution"); resolutionSet {
