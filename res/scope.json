@@ -1,6 +1,0 @@
-{
-  "$schema": "https://raw.githubusercontent.com/wisdom-oss/documentation/main/schemas/service-scope.schema.json",
-  "name": "Geo Data Access",
-  "description": "Access the geo data stored in the database",
-  "scopeStringValue": "geo-data"
-}

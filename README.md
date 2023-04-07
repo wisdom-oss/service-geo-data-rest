@@ -1,41 +1,61 @@
-# WISdoM OSS - Geospatial Data REST Service
+# WISdoM OSS - Geospatial Data Service
+<p>
+<img src="https://img.shields.io/github/go-mod/go-version/wisdom-oss/service-geo-data-rest?filename=src%2Fgo.mod&style=for-the-badge" alt="Go Lang Version"/>
+<a href="openapi.yaml">
+<img src="https://img.shields.io/badge/Schema%20Version-3.0.0-6BA539?style=for-the-badge&logo=OpenAPI%20Initiative" alt="OpenAPI Schema Version"/>
+</a>
+</p>
 
-This service allows access to the already stored geospatial data in the project.
+## Overview
+This microservice is responsible for delivering geospatial data.
+It is a part of the WISdoM OSS project.
+It uses the microservice template for the WISdoM OSS project.
 
-To use this service in a non default deployment you may use the following docker compose snippet
-```yaml
-version: '3.8'
+## Using the service
+The service is included in every WISdoM OSS deployment by default and does not
+require the user to do anything.
 
-services:
-  geospatial-data-rest:
-    build: https://github.com/wisdom-oss/service-geo-data-rest#stable
-    image: wisdom-oss/services/geospatial-data-rest:stable
-    restart: always
-    deploy:
-      mode: replicated
-      replicas: 1 #TODO: Increase if more replicas are needed for your deployment
-    depends_on:
-      - postgres
-      - api-gateway
-    # TODO: Set the following values to those matching your deployment
-    environment:
-      - CONFIG_API_GATEWAY_HOST=
-      - CONFIG_API_GATEWAY_PORT=
-      - CONFIG_API_GATEWAY_SERVICE_PATH=
-      - CONFIG_POSTGRES_HOST=
-      - CONFIG_POSTGRES_USER=
-      - CONFIG_POSTGRES_PASSWORD=
+A documentation for the API can be found in the [openapi.yaml](openapi.yaml) file in the
+repository.
+
+## Request Flow
+The following diagram shows the request flow of the service.
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant G as API Gateway
+    participant S as Geo Data Service
+    participant D as Database
+    
+    U->>G: New Request
+    activate G
+    G->>G: Check authentication
+    alt authentication failed 
+        note over U,G: Authentication may fail due to<br/>invalid credentials or missing<br/>headers
+        G->>U: Error Response 
+    else authentication successful
+        G->>S: Proxy request
+        activate S
+    end
+    S-->S: Check authentication information for explicit group
+    deactivate G
+    activate D
+    S-->D: Query geodata
+    deactivate D
+    S-->S: Build response
+    S->>G: response
+    deactivate S
+    G->>U: deliver response
+    
 ```
 
-## Configuration
-The service supports the following configuration parameters by environment variables:
+## Development
+### Prerequisites
+- Go 1.20
 
-- `CONFIG_LOGGING_LEVEL` &#8594; Set the logging verbosity [optional, default `INFO`]
-- `CONFIG_API_GATEWAY_HOST` &#8594; Set the host on which the API Gateway runs on **[required]**
-- `CONFIG_API_GATEWAY_PORT` &#8594; Set the port on which the API Gateway listens on **[required]**
-- `CONFIG_API_GATEWAY_SERVICE_PATH` &#8594; Set the path under which the service shall be reachable. _Do not prepend the path with `/api`. Only set the last part of the desired path_ **[required]**
-- `CONFIG_POSTGRES_HOST` &#8594; The host on which the database runs on containing the geospatial data
-- `CONFIG_POSTGRES_USER` &#8594; The user used to access the database
-- `CONFIG_POSTGRES_PASSWORD` &#8594; The password used to access the database
-- `CONFIG_HTTP_LISTEN_PORT` &#8594; The port on which the built-in webserver will listen on [optional, default `8000`]
-- `CONFIG_SCOPE_FILE_PATH` &#8594; The location where the scope definition file is stored inside the docker container [optional, default `/microservice/res/scope.json]
+### Important notices
+- Since the service is usually deployed behind an API gateway which
+  authenticates the user, the service does reject all requests which do not
+  contain the `X-Authenticated-Groups` and `X-Authenticated-User` header.
+
+  You need to set those headers manually when testing the service locally.
