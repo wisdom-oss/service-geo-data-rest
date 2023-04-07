@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/lib/pq"
 	geojson "github.com/paulmach/go.geojson"
 	"microservice/enums"
 	requestErrors "microservice/request/error"
@@ -44,8 +45,8 @@ func GetShapes(w http.ResponseWriter, r *http.Request) {
 		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-box-for-all-shapes")
 		break
 	case shapeKeysSet && !resolutionSet:
-		shapeRows, queryError = globals.Queries.Query(connections.DbConnection, "get-shapes-by-key", shapeKeys)
-		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-box-for-shapes-by-key", shapeKeys)
+		shapeRows, queryError = globals.Queries.Query(connections.DbConnection, "get-shapes-by-key", pq.Array(shapeKeys))
+		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-box-for-shapes-by-key", pq.Array(shapeKeys))
 		break
 	case !shapeKeysSet && resolutionSet:
 		shapeRows, queryError = globals.Queries.Query(connections.DbConnection, "get-shapes-by-resolution", resolution.GetKeyLength())
