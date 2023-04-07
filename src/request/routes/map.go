@@ -41,15 +41,15 @@ func GetShapes(w http.ResponseWriter, r *http.Request) {
 	case !shapeKeysSet && !resolutionSet:
 		l.Warn().Msg("no query parameters provided. query may take a long time to execute")
 		shapeRows, queryError = globals.Queries.Query(connections.DbConnection, "get-all-shapes")
-		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-shape-box")
+		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-box-for-all-shapes")
 		break
 	case shapeKeysSet && !resolutionSet:
 		shapeRows, queryError = globals.Queries.Query(connections.DbConnection, "get-shapes-by-key", shapeKeys)
-		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-shape-box-by-key", shapeKeys)
+		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-box-for-shapes-by-key", shapeKeys)
 		break
 	case !shapeKeysSet && resolutionSet:
 		shapeRows, queryError = globals.Queries.Query(connections.DbConnection, "get-shapes-by-resolution", resolution.GetKeyLength())
-		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-shape-box-by-resolution", resolution.GetKeyLength())
+		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-box-for-shapes-by-resolution", resolution.GetKeyLength())
 		break
 	case shapeKeysSet && resolutionSet:
 		// create a regular expression to match the keys to their internal ids
@@ -66,8 +66,8 @@ func GetShapes(w http.ResponseWriter, r *http.Request) {
 		// remove the last pipe character
 		regex = strings.Trim(regex, "|")
 		// now query the database
-		shapeRows, queryError = globals.Queries.Query(connections.DbConnection, "get-shapes-by-key-and-resolution", resolution.GetKeyLength(), regex)
-		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-shape-box-by-key-and-resolution", resolution.GetKeyLength(), regex)
+		shapeRows, queryError = globals.Queries.Query(connections.DbConnection, "get-shapes-by-key-resolution", resolution.GetKeyLength(), regex)
+		shapeBoxRow, _ = globals.Queries.QueryRow(connections.DbConnection, "get-box-for-shapes-by-key-resolution", resolution.GetKeyLength(), regex)
 		break
 	default:
 		l.Warn().Msg("something went wrong with the query parameters. returning all shapes")
