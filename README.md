@@ -1,4 +1,4 @@
-# WISdoM OSS - Consumer Management Service
+# WISdoM OSS - Geospatial Data Service
 <p>
 <img src="https://img.shields.io/github/go-mod/go-version/wisdom-oss/service-geo-data-rest?filename=src%2Fgo.mod&style=for-the-badge" alt="Go Lang Version"/>
 <a href="openapi.yaml">
@@ -7,8 +7,7 @@
 </p>
 
 ## Overview
-This microservice is responsible for managing consumers and their associated
-data.
+This microservice is responsible for delivering geospatial data.
 It is a part of the WISdoM OSS project.
 It uses the microservice template for the WISdoM OSS project.
 
