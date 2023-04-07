@@ -1,8 +1,7 @@
 // This file contains the setup for the gateway used in the project. It is usually queried by the service-watcher and used to
 // register this service in the gateway.
-// TODO: change the following values
 {
-  "serviceName": "template-service",
-  "upstreamName": "template-service",
+  "serviceName": "geodata",
+  "upstreamName": "geodata",
   "enableHealthchecks": true,
 }
