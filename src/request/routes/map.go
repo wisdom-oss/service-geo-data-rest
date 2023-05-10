@@ -118,13 +118,13 @@ func GetShapes(w http.ResponseWriter, r *http.Request) {
 
 	// now build the response
 	type response struct {
-		Shapes      []structs.Shape  `json:"shapes"`
-		BoundingBox geojson.Geometry `json:"box"`
+		Shapes      []structs.Shape `json:"shapes"`
+		BoundingBox [][]float64     `json:"box"`
 	}
 
 	res := response{
 		Shapes:      shapes,
-		BoundingBox: boundingBox,
+		BoundingBox: boundingBox.Polygon[0][:4],
 	}
 
 	// send the response
