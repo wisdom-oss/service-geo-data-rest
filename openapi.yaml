@@ -5,15 +5,70 @@ info:
   version: 1.0.0
 servers:
   - url: 'https'
+
+components:
+  schemas:
+    Layer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        crs:
+          type: integer
+          title: Coordinate Reference System
+          description: |
+            The EPSG code for the coordinate reference system used in the layer
 paths:
   /:
     get:
+      summary: Retrieve available Layers
       responses:
         200:
-          description: Hello There response
+          description: Layers
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                pattern: '^hello there$'
-  
+                type: array
+                items:
+                  - $ref: '#/components/schemas/Layer'
+        204:
+          description: No layers available
+  /{layer-id}:
+    get:
+      summary: Get layer information
+      responses:
+        200:
+          description: Layer Information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Layer'
+  /content/{layer-id}:
+    parameters:
+      - in: path
+        name: layer-id
+        description: the uuid of the layer
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Layer Contents
+      responses:
+        200:
+          description: The layers contents
+          content:
+            application/json:
+              schema:
+                type: array
+                description: |
+                  An array containing the single entries of the layer 
+                  represented in GeoJSON.
+                  Due to the possibility of mixed entries in a layer no actual
+                  information is available on a single entry of this response.
+                items:
+                  type: object
