@@ -17,4 +17,4 @@ var SqlQueries *dotsql.DotSql
 // Environment contains a mapping between the environment variables and the values
 // they were set to. However, this variable only contains the configured environment
 // variables
-var Environment map[string]string = make(map[string]string)
+var Environment = make(map[string]string)
