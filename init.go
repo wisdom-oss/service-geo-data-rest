@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	pgxgeom "github.com/twpayne/pgx-geom"
 	wisdomType "github.com/wisdom-oss/commonTypes/v2"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -108,6 +110,12 @@ func connectDatabase() {
 
 	var err error
 	pgxConfig, err := pgxpool.ParseConfig(address)
+	pgxConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		if err := pgxgeom.Register(ctx, conn); err != nil {
+			return err
+		}
+		return nil
+	}
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to create base configuration for connection pool")
 	}
