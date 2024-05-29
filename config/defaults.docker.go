@@ -11,7 +11,7 @@ import (
 	errorMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/error"
 	securityMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/security"
 
-	"github.com/wisdom-oss/service-water-rights/globals"
+	"microservice/globals"
 )
 
 // This file contains default paths that are used inside the service to load
