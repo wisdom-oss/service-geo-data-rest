@@ -2,6 +2,11 @@
 SELECT *
 FROM geodata.layers;
 
--- name: get-data-base-query
+-- name: get-layer
 SELECT *
-FROM geodata.%s;
+FROM geodata.layers
+WHERE id = $1;
+
+-- name: get-layer-contents
+SELECT *
+FROM geodata.%s ;
