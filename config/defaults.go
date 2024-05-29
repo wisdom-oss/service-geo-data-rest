@@ -25,6 +25,7 @@ import (
 // To disable single middlewares, please remove the line in which this array
 // is used and add the middlewares that shall be used manually to the router
 var Middlewares = []func(next http.Handler) http.Handler{
+	httpLogger(),
 	chiMiddleware.RequestID,
 	chiMiddleware.RealIP,
 	errorMiddleware.Handler,
