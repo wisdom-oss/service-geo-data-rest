@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/httplog"
 	"github.com/rs/zerolog/log"
 	healthcheckServer "github.com/wisdom-oss/go-healthcheck/server"
 	errorMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/error"
@@ -42,17 +41,15 @@ func main() {
 
 	// create a new router
 	router := chi.NewRouter()
-	// add some middlewares to the router to allow identifying requests
-	router.Use(httplog.Handler(l))
 	router.Use(config.Middlewares...)
 	router.NotFound(errorMiddleware.NotFoundError)
 	// now mount the routes as some examples
-	router.HandleFunc("/", routes.BasicHandler)
-	router.HandleFunc("/internal-error", routes.BasicWithErrorHandling)
-	router.With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeRead)).HandleFunc("/read", routes.BasicHandler)
-	router.With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeWrite)).HandleFunc("/write", routes.BasicHandler)
-	router.With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeDelete)).HandleFunc("/delete", routes.BasicHandler)
-	router.With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeAdmin)).HandleFunc("/admin", routes.BasicHandler)
+	router.
+		With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeRead)).
+		HandleFunc("/", routes.LayerInformation)
+	router.
+		With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeRead)).
+		HandleFunc(fmt.Sprintf("/content/{%s}", routes.LayerIdUrlKey), routes.LayerContents)
 
 	// now boot up the service
 	// Configure the HTTP server
