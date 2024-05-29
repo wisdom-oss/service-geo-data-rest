@@ -1,6 +1,0 @@
-{
-  "$schema": "https://raw.githubusercontent.com/wisdom-oss/documentation/main/schemas/service-scope.schema.json",
-  "name": "WISdoM Users",
-  "description": "",
-  "scopeStringValue": "WISdoM Users"
-}
