@@ -38,3 +38,4 @@
 !routes/
 !config/
 !types/
+!filters/
