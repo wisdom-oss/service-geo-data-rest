@@ -8,5 +8,5 @@ FROM geodata.layers
 WHERE id = $1;
 
 -- name: get-layer-contents
-SELECT *
+SELECT id, st_transform(geometry, 4326) as geometry, key, name, additional_properties
 FROM geodata.%s ;
