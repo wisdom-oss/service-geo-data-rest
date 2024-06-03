@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog/log"
 	healthcheckServer "github.com/wisdom-oss/go-healthcheck/server"
 	errorMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/error"
@@ -46,10 +47,17 @@ func main() {
 	// now mount the routes as some examples
 	router.
 		With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeRead)).
-		HandleFunc("/", routes.LayerInformation)
+		Get("/", routes.LayerInformation)
 	router.
 		With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeRead)).
-		HandleFunc(fmt.Sprintf("/content/{%s}", routes.LayerIdUrlKey), routes.LayerContents)
+		Get(fmt.Sprintf("/{%s}", routes.LayerIdUrlKey), routes.SingleLayerInformation)
+	router.
+		With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeRead)).
+		Get(fmt.Sprintf("/content/{%s}", routes.LayerIdUrlKey), routes.LayerContents)
+	router.
+		With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeRead)).
+		With(middleware.AllowContentType("application/json", "text/json")).
+		Post(fmt.Sprintf("/content/{%s}/filtered", routes.LayerIdUrlKey), routes.FilteredLayerContents)
 
 	// now boot up the service
 	// Configure the HTTP server
