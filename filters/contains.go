@@ -33,7 +33,7 @@ func (f Contains) BuildQueryPart(layerID string, keys ...string) (string, error)
 	var parts []string
 	for _, key := range keys {
 		parts = append(parts,
-			fmt.Sprintf(`ST_CONTAINS(geometry, (SELECT geometry FROM geodata.%s WHERE key = '%s'))`, layer.TableName.String, key),
+			fmt.Sprintf(`ST_CONTAINS(st_transform(geometry, 4326), (SELECT st_transform(geometry,4326) FROM geodata.%s WHERE key = '%s'))`, layer.TableName.String, key),
 		)
 	}
 	return strings.Join(parts, " OR "), nil
