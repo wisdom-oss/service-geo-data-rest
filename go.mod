@@ -3,6 +3,7 @@ module microservice
 go 1.22.0
 
 require (
+	github.com/andybalholm/brotli v1.1.0
 	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/go-chi/httplog v0.3.2

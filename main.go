@@ -1,8 +1,10 @@
 package main
 
 import (
+	"compress/flate"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +16,8 @@ import (
 	healthcheckServer "github.com/wisdom-oss/go-healthcheck/server"
 	errorMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/error"
 	securityMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/security"
+
+	"github.com/andybalholm/brotli"
 
 	"microservice/config"
 	"microservice/routes"
@@ -40,9 +44,16 @@ func main() {
 	}
 	go hcServer.Run()
 
+	// create compression middleware which understands brotli
+	compressor := middleware.NewCompressor(flate.BestCompression, "application/json")
+	compressor.SetEncoder("br", func(w io.Writer, level int) io.Writer {
+		return brotli.NewWriterLevel(w, level)
+	})
+
 	// create a new router
 	router := chi.NewRouter()
 	router.Use(config.Middlewares...)
+	router.Use(compressor.Handler)
 	router.NotFound(errorMiddleware.NotFoundError)
 	// now mount the routes as some examples
 	router.
