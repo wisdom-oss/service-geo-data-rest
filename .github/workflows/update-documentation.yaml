@@ -5,6 +5,7 @@ on:
       - 'docs/**'
       - 'static_docs/**'
       - 'README.md'
+      - 'openapi.yaml'
 
 jobs:
   trigger-update:
