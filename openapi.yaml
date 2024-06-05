@@ -4,7 +4,7 @@ info:
   description: Microservice Template
   version: 1.0.0
 servers:
-  - url: 'https'
+  - url: '/api/geodata'
 
 components:
   parameters:
@@ -113,6 +113,18 @@ paths:
                   items:
                     type: string
       summary: Filtered Layer Contents
+      externalDocs:
+        url: https://postgis.net/docs/reference.html#idm12722
+      description: |
+        This endpoint allows filtering the contents of the given layer (set by
+        layer-id) against different geospatial relations.
+        Currently the service supports the following geospatial relations:
+          * `contains`
+          * `overlaps`
+          * `within`
+        
+        These functions all use the names as they are used in the PostGIS
+        extension to allow a consistent usage throughout the service
       responses:
         200:
           description: The layers contents
