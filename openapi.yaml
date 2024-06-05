@@ -73,6 +73,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Layer'
+  /new:
+    post:
+      summary: Create New Layer
+      responses:
+        201:
+          description: |
+            The layer has been created and is already available with all it's
+            contents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Layer'
+        202:
+          description: |
+            The shapefile has been accepted and will be inserted into the 
+            created layer table.
+            
+            When querying a layer which has just been created you may encounter
+            missing elements in the response in your query.
+        400:
+          description: The Layers configuration was faulty
+
+
+
   /content/{layer-id}:
     parameters:
       - $ref: '#/components/parameters/LayerID'
