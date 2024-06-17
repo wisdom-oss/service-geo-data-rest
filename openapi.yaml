@@ -7,12 +7,35 @@ servers:
   - url: '/api/geodata'
 
 components:
+  responses:
+    UnknownLayer:
+      description: The Layer is unknown
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
   parameters:
     LayerID:
       in: path
       name: layer-id
       description: The UUID for the layer
   schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        status:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        instance:
+          type: string
+        error:
+          type: string
     Object:
       type: object
       properties:
@@ -58,7 +81,7 @@ paths:
               schema:
                 type: array
                 items:
-                  - $ref: '#/components/schemas/Layer'
+                  $ref: '#/components/schemas/Layer'
         204:
           description: No layers available
   /{layer-id}:
@@ -67,31 +90,26 @@ paths:
     get:
       summary: Get layer information
       responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
+
         200:
           description: Layer Information
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Layer'
-  /new:
+  /create:
     post:
       summary: Create New Layer
       responses:
         201:
           description: |
-            The layer has been created and is already available with all it's
-            contents
+            The layer has been created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Layer'
-        202:
-          description: |
-            The shapefile has been accepted and will be inserted into the 
-            created layer table.
-            
-            When querying a layer which has just been created you may encounter
-            missing elements in the response in your query.
         400:
           description: The Layers configuration was faulty
 
@@ -103,6 +121,8 @@ paths:
     get:
       summary: Layer Contents
       responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
         200:
           description: The layers contents
           content:
@@ -150,6 +170,8 @@ paths:
         These functions all use the names as they are used in the PostGIS
         extension to allow a consistent usage throughout the service
       responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
         200:
           description: The layers contents
           content:
