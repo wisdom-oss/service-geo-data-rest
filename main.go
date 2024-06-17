@@ -67,8 +67,12 @@ func main() {
 		Get(fmt.Sprintf("/content/{%s}", routes.LayerIdUrlKey), routes.LayerContents)
 	router.
 		With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeRead)).
-		With(middleware.AllowContentType("application/json", "text/json")).
 		Post(fmt.Sprintf("/content/{%s}/filtered", routes.LayerIdUrlKey), routes.FilteredLayerContents)
+	router.
+		With(securityMiddleware.RequireScope(globals.ServiceName, securityMiddleware.ScopeWrite)).
+		Post("/create", routes.NewLayer)
+	router.
+		Post("/inspect", routes.InspectShapefile)
 
 	// now boot up the service
 	// Configure the HTTP server
