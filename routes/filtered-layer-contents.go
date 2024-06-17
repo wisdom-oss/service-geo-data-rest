@@ -82,7 +82,7 @@ func FilteredLayerContents(w http.ResponseWriter, r *http.Request) {
 	}
 	query = fmt.Sprintf(query, layer.TableName.String)
 	query = strings.ReplaceAll(query, `;`, ``)
-	query += "WHERE ("
+	query += " WHERE ("
 	query += strings.Join(queryParts, ") AND (")
 	query += ")"
 
