@@ -18,7 +18,7 @@ type Object struct {
 
 func (o Object) MarshalJSON() ([]byte, error) {
 	type obj struct {
-		ID                   pgtype.Int8            `json:"id" db:"id"`
+		ID                   pgtype.Int8            `json:"-" db:"id"`
 		Geometry             json.RawMessage        `json:"geometry" db:"geometry"`
 		Name                 pgtype.Text            `json:"name" db:"name"`
 		Key                  pgtype.Text            `json:"key" db:"key"`
