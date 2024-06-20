@@ -93,7 +93,7 @@ func (vc ViewConfiguration) BuildCreateQuery() (string, error) {
 	jsonBuildObjectCommand = strings.TrimSuffix(jsonBuildObjectCommand, ",")
 	jsonBuildObjectCommand += ")"
 
-	return fmt.Sprintf(QueryPattern, vc.Table, vc.ID, vc.Key, vc.Geometry, vc.Name, jsonBuildObjectCommand, vc.Schema, vc.Table, vc.WhereCondition), nil
+	return fmt.Sprintf(QueryPattern, strcase.ToSnake(vc.Table), vc.ID, vc.Key, vc.Geometry, vc.Name, jsonBuildObjectCommand, vc.Schema, vc.Table, vc.WhereCondition), nil
 }
 
 func (vc ViewConfiguration) TableName() string {
