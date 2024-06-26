@@ -24,7 +24,7 @@ components:
   parameters:
     LayerID:
       in: path
-      name: layer-id
+      name: layer-ref
       description: The UUID or Key for the layer that should be shown
   schemas:
     ErrorResponse:
@@ -102,7 +102,7 @@ paths:
                   $ref: '#/components/schemas/Layer'
         204:
           description: No layers available
-  /{layer-id}:
+  /{layer-ref}:
     parameters:
       - $ref: '#/components/parameters/LayerID'
     get:
@@ -307,7 +307,7 @@ paths:
 
 
 
-  /content/{layer-id}:
+  /content/{layer-ref}:
     parameters:
       - $ref: '#/components/parameters/LayerID'
     get:
@@ -328,7 +328,7 @@ paths:
                   information is available on a single entry of this response.
                 items:
                   $ref: "#/components/schemas/Object"
-  /content/{layer-id}/filtered:
+  /content/{layer-ref}/filtered:
     parameters:
       - $ref: '#/components/parameters/LayerID'
     post:
