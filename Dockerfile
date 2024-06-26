@@ -5,7 +5,7 @@ RUN mkdir -p /tmp/build
 RUN go mod download
 RUN go build -tags docker -o /tmp/build/app
 
-FROM docker.io/alpine:latest
+FROM ghcr.io/osgeo/gdal:apline-small-latest
 COPY --from=build-service /tmp/build/app /service
 COPY resources/* /
 ENTRYPOINT ["/service"]
