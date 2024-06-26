@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,6 +31,7 @@ func init() {
 	loadServiceConfiguration()
 	connectDatabase()
 	loadPreparedQueries()
+	checkGDALSrsInfo()
 	log.Info().Msg("initialization process finished")
 }
 
@@ -149,5 +151,15 @@ func loadPreparedQueries() {
 	globals.SqlQueries, err = dotsql.LoadFromFile(location)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load prepared queries")
+	}
+}
+
+// checkGDALSrsInfo checks if the gdalsrsinfo command is available as it is used
+// to determine the EPSG code of the geometries while inserting them into the
+// database
+func checkGDALSrsInfo() {
+	_, err := exec.LookPath("gdalsrsinfo")
+	if err != nil {
+		log.Fatal().Msg("required executable gdalsrsinfo not found in PATH")
 	}
 }
