@@ -2,7 +2,6 @@ package routes
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	errorMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/error"
 
 	"microservice/globals"
@@ -43,7 +43,7 @@ func LayerContents(w http.ResponseWriter, r *http.Request) {
 	var layer types.Layer
 	err = pgxscan.Get(context.Background(), globals.Db, &layer, query, layerID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			errorHandler <- ErrUnknownLayerID
 			return
 		}
