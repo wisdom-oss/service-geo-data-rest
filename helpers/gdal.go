@@ -15,11 +15,10 @@ func SpatialReferenceInformation(input string, outputFormat string) (interface{}
 	switch outputFormat {
 	case "epsg":
 		codeOnly := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(string(bytes))), "epsg:")
-		i, err := strconv.ParseInt(codeOnly, 10, 64)
+		output, err = strconv.Atoi(codeOnly)
 		if err != nil {
 			return "", err
 		}
-		output = int(i)
 	default:
 		output = strings.TrimSpace(string(bytes))
 	}
