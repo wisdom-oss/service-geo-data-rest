@@ -11,6 +11,7 @@ import (
 	wisdomType "github.com/wisdom-oss/commonTypes/v2"
 	errorMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/error"
 
+	"microservice/helpers"
 	"microservice/types"
 )
 
@@ -69,6 +70,20 @@ func InspectShapefile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	shapefileInformation.Attributes = attributes
+
+	srs, err := helpers.SpatialReferenceInformation(shp.PRJ.Projection, "epsg")
+	if err != nil {
+		errorHandler <- fmt.Errorf("unable to get epsg code: %w", err)
+		return
+	}
+	shapefileInformation.EPSGCode = srs.(int)
+
+	srs, err = helpers.SpatialReferenceInformation(shp.PRJ.Projection, "proj4")
+	if err != nil {
+		errorHandler <- fmt.Errorf("unable to get proj4 representation: %w", err)
+		return
+	}
+	shapefileInformation.Proj4String = srs.(string)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(shapefileInformation)
