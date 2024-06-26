@@ -2,7 +2,6 @@ package routes
 
 import (
 	"archive/zip"
-	"cmp"
 	"errors"
 	"fmt"
 	"mime"
@@ -22,6 +21,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"microservice/globals"
+	"microservice/helpers"
 	"microservice/types"
 )
 
@@ -51,6 +51,20 @@ var ErrUnknownRelation = wisdomType.WISdoMError{
 	Status: 400,
 	Title:  "[DB] Unknown Relation",
 	Detail: "The relation you specified does not exist. Therefore no layer could be created.",
+}
+
+var ErrNoProjectionProvided = wisdomType.WISdoMError{
+	Type:   "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1",
+	Status: 400,
+	Title:  "[Shapefile] No Projection Found",
+	Detail: "The shapefile needs to be accompanied by a projection file to allow the database to handle the entries correct.",
+}
+
+var ErrNoEPSGCodeFound = wisdomType.WISdoMError{
+	Type:   "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1",
+	Status: 400,
+	Title:  "[Shapefile] No EPSG Code Found",
+	Detail: "The shapefile contained a projection which could not be resolved to an EPSG code. Please transform your shapes into a known EPSG code projection",
 }
 
 // NewLayer handles the creation of a new layer.
@@ -175,8 +189,8 @@ var ErrInvalidKeyType = wisdomType.WISdoMError{
 var alwaysOptionalKeys = []string{FormKeyLayerAdditionalAttribute, FormKeyLayerDescription}
 var archiveUploadRequiredKeys = []string{FormKeyLayerName, FormKeyArchiveFile, FormKeyNameAttribute, FormKeyKeyAttribute}
 var archiveUploadOptionalKeys = []string{}
-var directUploadRequiredKeys = []string{FormKeyLayerName, FormKeyEsriShapesFile, FormKeyEsriAttributesFile, FormKeyEsriShapeIndexFile, FormKeyNameAttribute, FormKeyKeyAttribute}
-var directUploadOptionalKeys = []string{FormKeyEsriProjectionFile, FormKeyEsriCodePageFile}
+var directUploadRequiredKeys = []string{FormKeyLayerName, FormKeyEsriShapesFile, FormKeyEsriAttributesFile, FormKeyEsriShapeIndexFile, FormKeyNameAttribute, FormKeyKeyAttribute, FormKeyEsriProjectionFile}
+var directUploadOptionalKeys = []string{FormKeyEsriCodePageFile}
 
 func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 	errorHandler := r.Context().Value(errorMiddleware.ChannelName).(chan<- interface{})
@@ -200,11 +214,13 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 	slices.Sort(archiveUploadOptionalKeys)
 	slices.Sort(directUploadRequiredKeys)
 	slices.Sort(directUploadOptionalKeys)
+	slices.Sort(alwaysOptionalKeys)
 
 	// remove the optional keys
-	recognitionKeys := subtractArrays(availableKeys, archiveUploadOptionalKeys)
-	recognitionKeys = subtractArrays(recognitionKeys, directUploadOptionalKeys)
-	recognitionKeys = subtractArrays(recognitionKeys, alwaysOptionalKeys)
+	recognitionKeys := slices.Clone(availableKeys)
+	recognitionKeys = helpers.SubtractArrays(recognitionKeys, archiveUploadOptionalKeys)
+	recognitionKeys = helpers.SubtractArrays(recognitionKeys, directUploadOptionalKeys)
+	recognitionKeys = helpers.SubtractArrays(recognitionKeys, alwaysOptionalKeys)
 
 	// now check if one of the arrays match the upload types
 	isArchiveUpload := slices.Equal(recognitionKeys, archiveUploadRequiredKeys)
@@ -311,6 +327,20 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// now try to resolve the EPSG code for the projection
+	if shpFile.PRJ == nil {
+		errorHandler <- ErrNoProjectionProvided
+		return
+	}
+
+	out, err := helpers.SpatialReferenceInformation(shpFile.PRJ.Projection, "epsg")
+	if err != nil {
+		errorHandler <- ErrNoEPSGCodeFound
+		return
+	}
+
+	epsgCode := out.(int)
+
 	// now extract the name and description from the request
 	layerName := f.Value[FormKeyLayerName][0]
 	if strings.TrimSpace(layerName) == "" {
@@ -319,7 +349,7 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	tableName := strcase.ToSnake(layerName)
 
-	var layerDescription *string
+	layerDescription := helpers.Pointer("")
 	if slices.Contains(availableKeys, FormKeyLayerDescription) {
 		*layerDescription = f.Value[FormKeyLayerDescription][0]
 	}
@@ -341,6 +371,12 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 	objectInsertionQuery = fmt.Sprintf(objectInsertionQuery, tableName)
 
 	layerDefinitionQuery, err := globals.SqlQueries.Raw("crate-layer-definition")
+	if err != nil {
+		errorHandler <- err
+		return
+	}
+
+	geometryUpdateQuery, err := globals.SqlQueries.Raw("update-geometry-srid")
 	if err != nil {
 		errorHandler <- err
 		return
@@ -378,7 +414,19 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = tx.Prepare(r.Context(), "update-srid", geometryUpdateQuery)
+	if err != nil {
+		errorHandler <- fmt.Errorf("unable to prepare statement for geometry update: %w", err)
+		return
+	}
+
 	var values [][]interface{}
+
+	// make all additional attribute keys lower camel case
+	var additionalAttributeKeys []string
+	for _, key := range f.Value[FormKeyLayerAdditionalAttribute] {
+		additionalAttributeKeys = append(additionalAttributeKeys, strcase.ToLowerCamel(key))
+	}
 
 	// now iterate over the shapefiles entries
 	for i := 0; i < shpFile.NumRecords(); i++ {
@@ -387,8 +435,9 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 		// create a map for the additional attributes
 		additionalProperties := make(map[string]interface{})
 		for key, value := range attributes {
-			if slices.Contains(f.Value[FormKeyLayerAdditionalAttribute], key) {
-				additionalProperties[key] = value
+			key = strcase.ToLowerCamel(key)
+			if slices.Contains(additionalAttributeKeys, key) {
+				additionalProperties[strcase.ToLowerCamel(key)] = value
 			}
 		}
 
@@ -415,7 +464,13 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	row, err := tx.Query(r.Context(), "define-layer", layerName, layerDescription, tableName, nil)
+	_, err = tx.Exec(r.Context(), "update-srid", tableName, epsgCode)
+	if err != nil {
+		errorHandler <- fmt.Errorf("unable to update geometry srid: %w", err)
+		return
+	}
+
+	row, err := tx.Query(r.Context(), "define-layer", layerName, layerDescription, tableName, epsgCode)
 	var layer types.Layer
 	err = pgxscan.ScanOne(&layer, row)
 	if err != nil {
@@ -431,16 +486,4 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 
 	_ = json.NewEncoder(w).Encode(layer)
 
-}
-
-func subtractArrays[E cmp.Ordered](minuend []E, subtrahend []E) (difference []E) {
-	slices.Sort(minuend)
-	slices.Sort(subtrahend)
-	for _, value := range subtrahend {
-		idx, found := slices.BinarySearch(minuend, value)
-		if found {
-			minuend = slices.Delete(minuend, idx, idx+1)
-		}
-	}
-	return minuend
 }
