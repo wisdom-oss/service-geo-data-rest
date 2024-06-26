@@ -9,6 +9,7 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	errorMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/error"
 
 	"microservice/globals"
@@ -28,6 +29,14 @@ func SingleLayerInformation(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorHandler <- err
 		return
+	}
+	err = uuid.Validate(layerID)
+	if err != nil {
+		query, err = globals.SqlQueries.Raw("get-layer-by-url-key")
+		if err != nil {
+			errorHandler <- err
+			return
+		}
 	}
 
 	var layer types.Layer

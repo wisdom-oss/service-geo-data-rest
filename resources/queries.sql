@@ -8,6 +8,12 @@ FROM geodata.layers
 WHERE
     id = $1;
 
+-- name: get-layer-by-url-key
+SELECT *
+FROM geodata.layers
+WHERE
+    "table" = $1;
+
 -- name: get-layer-contents
 SELECT id, st_transform(geometry, 4326) AS geometry, key, name, additional_properties
 FROM geodata.%s;
