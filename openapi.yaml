@@ -25,7 +25,7 @@ components:
     LayerID:
       in: path
       name: layer-id
-      description: The UUID for the layer
+      description: The UUID or Key for the layer that should be shown
   schemas:
     ErrorResponse:
       type: object
@@ -68,6 +68,10 @@ components:
           description: A GeoJSON representation of the objects geometry
     Layer:
       type: object
+      required:
+        - id
+        - name
+        - key
       properties:
         id:
           type: string
@@ -75,6 +79,8 @@ components:
         name:
           type: string
         description:
+          type: string
+        key:
           type: string
         crs:
           type: integer
