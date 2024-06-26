@@ -29,6 +29,12 @@ components:
   schemas:
     ErrorResponse:
       type: object
+      required:
+        - type
+        - status
+        - title
+        - detail
+        - instance
       properties:
         type:
           type: string
@@ -236,6 +242,7 @@ paths:
                       - shp
                       - dbf
                       - shx
+                      - prj
                     properties:
                       shp:
                         type: string
