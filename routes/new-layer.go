@@ -148,6 +148,7 @@ func createLayerFromView(w http.ResponseWriter, r *http.Request) {
 
 const FormKeyLayerName = "layer.name"
 const FormKeyLayerDescription = "layer.description"
+const FormKeyLayerAttribution = "layer.attribution"
 const FormKeyLayerAdditionalAttribute = "additional-attribute"
 const FormKeyNameAttribute = "attributes.name"
 const FormKeyKeyAttribute = "attributes.key"
@@ -186,7 +187,7 @@ var ErrInvalidKeyType = wisdomType.WISdoMError{
 	Detail: "The upload only supports strings as key value. Please check your layer",
 }
 
-var alwaysOptionalKeys = []string{FormKeyLayerAdditionalAttribute, FormKeyLayerDescription}
+var alwaysOptionalKeys = []string{FormKeyLayerAdditionalAttribute, FormKeyLayerDescription, FormKeyLayerAttribution}
 var archiveUploadRequiredKeys = []string{FormKeyLayerName, FormKeyArchiveFile, FormKeyNameAttribute, FormKeyKeyAttribute}
 var archiveUploadOptionalKeys = []string{}
 var directUploadRequiredKeys = []string{FormKeyLayerName, FormKeyEsriShapesFile, FormKeyEsriAttributesFile, FormKeyEsriShapeIndexFile, FormKeyNameAttribute, FormKeyKeyAttribute, FormKeyEsriProjectionFile}
@@ -354,6 +355,11 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 		*layerDescription = f.Value[FormKeyLayerDescription][0]
 	}
 
+	layerAttribution := helpers.Pointer("")
+	if slices.Contains(availableKeys, FormKeyLayerAttribution) {
+		*layerAttribution = f.Value[FormKeyLayerAttribution][0]
+	}
+
 	// now create the table for the new layer and prepare it
 	tableCreationQuery, err := globals.SqlQueries.Raw("create-layer-table")
 	if err != nil {
@@ -456,7 +462,7 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	row, err := tx.Query(r.Context(), "define-layer", layerName, layerDescription, tableName, epsgCode)
+	row, err := tx.Query(r.Context(), "define-layer", layerName, layerDescription, tableName, epsgCode, layerAttribution)
 	var layer types.Layer
 	err = pgxscan.ScanOne(&layer, row)
 	if err != nil {

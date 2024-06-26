@@ -7,5 +7,6 @@ type Layer struct {
 	Name                      pgtype.Text `json:"name" db:"name"`
 	Description               pgtype.Text `json:"description" db:"description"`
 	TableName                 pgtype.Text `json:"key" db:"table"`
+	Attribution               pgtype.Text `json:"attribution" db:"attribution"`
 	CoordinateReferenceSystem *int        `json:"crs" db:"crs"`
 }

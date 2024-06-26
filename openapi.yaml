@@ -82,6 +82,10 @@ components:
           type: string
         key:
           type: string
+        attribution:
+          type: string
+          description: |
+            A attribution for the data contained in the layer
         crs:
           type: integer
           title: Coordinate Reference System
@@ -206,8 +210,12 @@ paths:
                     layer.description:
                       type: string
                       description: |
-                        The layer description may contain addtional information
+                        The layer description may contain additional information
                         about the layers
+                    layer.attribution:
+                      type: string
+                      description: |
+                        An attribution to the source of the layer
                     attributes.key:
                       type: string
                       title: Key Attribute Identifier
