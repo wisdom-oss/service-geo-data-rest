@@ -362,14 +362,6 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	tableCreationQuery = fmt.Sprintf(tableCreationQuery, tableName)
 
-	// now load the query used for inserting a shape as a row and prepare it
-	objectInsertionQuery, err := globals.SqlQueries.Raw("insert-shape-object")
-	if err != nil {
-		errorHandler <- fmt.Errorf("unable to load insertion query: %w", err)
-		return
-	}
-	objectInsertionQuery = fmt.Sprintf(objectInsertionQuery, tableName)
-
 	layerDefinitionQuery, err := globals.SqlQueries.Raw("crate-layer-definition")
 	if err != nil {
 		errorHandler <- err
@@ -399,12 +391,6 @@ func createLayerFromUpload(w http.ResponseWriter, r *http.Request) {
 	_, err = tx.Exec(r.Context(), tableCreationQuery)
 	if err != nil {
 		errorHandler <- fmt.Errorf("unable to prepare statement for layer creation query: %w", err)
-		return
-	}
-
-	_, err = tx.Prepare(r.Context(), "insert-object", objectInsertionQuery)
-	if err != nil {
-		errorHandler <- fmt.Errorf("unable to prepare statement for object insertion query: %w", err)
 		return
 	}
 
