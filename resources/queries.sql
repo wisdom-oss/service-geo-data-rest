@@ -30,3 +30,6 @@ CREATE TABLE geodata.%s
 -- name: insert-shape-object
 INSERT INTO geodata.%s(geometry, key, name, additional_properties)
 VALUES ($1, $2, $3, $4);
+
+-- name: update-geometry-srid
+SELECT UpdateGeometrySRID('geodata', $1, 'geometry', $2);
