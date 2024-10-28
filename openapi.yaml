@@ -1,187 +1,231 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: WISdoM OSS - Geo Data Rest
+  title: Geospatial Data Service
   description: |
-    This microservice allows the access to geospatial data which is stored in the database
-    
-    **IMPORTANT NOTICE**  
-    This service requires, that the user accessing it was previously authorized via the authorization service and has
-    the correct scope for accessing this service. The definition of the scope is stored in the scope description file
-    as long as there is no manual replacement done. The scope description file is stored in the folder `res` in the root
-    of the repository
-
-  version: '3.0'
-
+    This microservice allows access to the different layers of geospatial data
+    stored on the WISdoM platform.
+    The geospatial data is always returned in the same way to allow a coherent
+    output for all layers stored.
+    Since some layers contain additional information and properties on a
+    geometry these are also returned has a hash map
+  version: 2.0.0
 servers:
-  - url: https://wisdom-demo.uol.de/api/geodata
-    description: The default API endpoint for the WISdoM demo server
+  - url: '/api/geodata'
 
 components:
-  securitySchemes:
-    WISdoM_Auth:
-      type: oauth2
-      flows:
-        password:
-          tokenUrl: /api/oauth/token
-          refreshUrl: /api/oauth/token
+  responses:
+    UnknownLayer:
+      description: The Layer is unknown
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  parameters:
+    LayerID:
+      in: path
+      name: layer-ref
+      description: The UUID or Key for the layer that should be shown
   schemas:
-    Point:
-      type: array
-      description: Point in 3D space
-      externalDocs:
-        url: http://geojson.org/geojson-spec.html#id2
-      minItems: 2
-      maxItems: 3
-      items:
-        type: number
-    Geometry:
+    ErrorResponse:
       type: object
-      description: GeoJSON geometry
       required:
         - type
-      externalDocs:
-        url: http://geojson.org/geojson-spec.html#geometry-objects
+        - status
+        - title
+        - detail
+        - instance
       properties:
         type:
           type: string
-          enum:
-            - MultiPolygon
-          description: the geometry type
-    MultiPolygon:
+        status:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        instance:
+          type: string
+        error:
+          type: string
+    Object:
       type: object
-      description: GeoJSon geometry
-      externalDocs:
-        url: http://geojson.org/geojson-spec.html#id6
-      allOf:
-        - $ref: "#/components/schemas/Geometry"
-        - properties:
-            coordinates:
-              type: array
-              items:
-                type: array
-                items:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/Point'
-
-
+      properties:
+        id:
+          type: integer
+          description: database-generated
+        name:
+          type: string
+        key:
+          type: string
+          description: |
+            identifies an object in requests as it is specific to the layer and
+            the key definition
+        additionalProperties:
+          additionalProperties: true
+        geometry:
+          type: object
+          description: A GeoJSON representation of the objects geometry
+    Layer:
+      type: object
+      required:
+        - id
+        - name
+        - key
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        key:
+          type: string
+        attribution:
+          type: string
+          description: |
+            A attribution for the data contained in the layer
+        crs:
+          type: integer
+          title: Coordinate Reference System
+          description: |
+            The EPSG code for the coordinate reference system used in the layer
 paths:
   /:
     get:
-      summary: Get geospatial data from the database
-      description: |
-        Get a JSON object containing bounding box coordinates and the shapes that have been selected via the filter 
-        parameters
-      
+      summary: Retrieve available Layers
+      responses:
+        200:
+          description: Layers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Layer'
+        204:
+          description: No layers available
+  /{layer-ref}:
+    parameters:
+      - $ref: '#/components/parameters/LayerID'
+    get:
+      summary: Get layer information
+      responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
+
+        200:
+          description: Layer Information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Layer'
+
+
+  /content/{layer-ref}:
+    parameters:
+      - $ref: '#/components/parameters/LayerID'
+    get:
+      summary: Layer Contents
+      responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
+        200:
+          description: The layers contents
+          content:
+            application/json:
+              schema:
+                type: array
+                description: |
+                  An array containing the single entries of the layer 
+                  represented in GeoJSON.
+                  Due to the possibility of mixed entries in a layer no actual
+                  information is available on a single entry of this response.
+                items:
+                  $ref: "#/components/schemas/Object"
+  /content/{layer-ref}/filtered:
+    parameters:
+      - $ref: '#/components/parameters/LayerID'
+    get:
       parameters:
         - in: query
-          name: resolution
-          description: |
-            A predefined resolution level. Using this filter parameter the query will only return
-            shapes matching the resolution level.
+          name: relation
           schema:
             type: string
             enum:
-              - municipal
-              - administration
-              - district
-              - state
+              - within
+              - overlaps
+              - contains
+          description: >
+            The geospatial relation between the base layer and the other layer
+        - in: query
+          name: other_layer
+          schema:
+            type: string
+          description: |
+            The UUID or URL key of the other layer used for the geospatial
+            relation
         - in: query
           name: key
-          description: |
-            One or multiple shape keys. The shape keys are oriented at the format of the [regional key](https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Glossar/regionalschluessel.html).
-            
-            <i>NOTICE: When using the shape key parameter in conjunction with the resolution filter. The keys are
-            converted into matchers for the shape keys in the resolution.</i>
-            
-            Example: Using the resolution `municipal`and the key `0301` will return all shapes in the `municipal`
-            resolution starting with `0301`. <b>Using a key longer than the resolution supports will result in an empty response</b>
-            
-            <b> Key Lengths </b>
-            <table>
-            <thead>
-            <tr>
-            <td>Resolution</td>
-            <td>Supported key length</td>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-            <td><code>municipal</code></td>
-            <td>12</td>
-            </tr>
-            <tr>
-            <td><code>administration</code></td>
-            <td>9</td>
-            </tr>
-            <tr>
-            <td><code>district</code></td>
-            <td>5</td>
-            </tr>
-            <tr>
-            <td><code>state</code></td>
-            <td>2</td>
-            </tr>
-            
-            </tbody>
-            <table>
           schema:
             type: array
             items:
               type: string
-              pattern: ^\d{1,12}$
+          description: >
+            One or multiple keys which are taken from the other layer and
+            intersected with the base layer
+      summary: Filtered Layer Contents
+      externalDocs:
+        url: https://postgis.net/docs/reference.html#idm12722
+      description: |
+        This endpoint allows filtering the contents of the given layer (set by
+        layer-id) against different geospatial relations.
+        Currently the service supports the following geospatial relations:
+          * `contains`
+          * `overlaps`
+          * `within`
+        
+        These functions all use the names as they are used in the PostGIS
+        extension to allow a consistent usage throughout the service
+      responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
+        200:
+          description: The layers contents
+          content:
+            application/json:
+              schema:
+                type: array
+                description: |
+                  An array containing the single entries of the layer 
+                  represented in GeoJSON.
+                  Due to the possibility of mixed entries in a layer no actual
+                  information is available on a single entry of this response.
+                items:
+                  $ref: "#/components/schemas/Object"
+  /identify:
+    get:
+      parameters:
+        - in: query
+          name: key
+          schema:
+            type: array
+            items:
+              type: string
+          description: An array of keys which should be identified
+
       responses:
         200:
-          description: Shapes and the bounding box of those shapes
+          description: The identified objects
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  box:
-                    title: Bounding Box
-                    description: |
-                      The outer four corners of the bounding box of the shapes that have been selected.
-                    type: array
-                    minItems: 4
-                    maxItems: 4
-                    items:
-                      $ref: "#/components/schemas/Point"
-                  shapes:
-                    title: Selected Shapes
-                    description: |
-                      The shapes that have been selected by the usage of the filters.
+                additionalProperties:
+                  type: object
+                  additionalProperties:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                          title: Shape Name
-                          description: |
-                            The official name of the shape. This value may **not** be used as identifier since multiple
-                            shapes may have the same name.
-                        key:
-                          type: string
-                          title: Regional Key
-                          description: |
-                            The official regional key of the shape. This value may be used as a identifier since there
-                            is no possibility for multiple shapes with the same regional key.
-                        nuts_key:
-                          type: string
-                          title: NUTS Key
-                          description: |
-                            The NUTS code assigned to the shape. The availability of this code may vary and multiple
-                            shapes may also use the same code. **Do not use as identifier**
-                        geojson:
-                          $ref: "#/components/schemas/MultiPolygon"
-        204:
-          description: |
-            The filters removed all possible values. No shapes found
-  /ping:
-    get:
-      summary: Ping the service to test its reachability
-      description: The microservice will respond with a 204 No Content when pinging it
-      responses:
-        '204':
-          description: Response to the ping without any content
+                      $ref: '#/components/schemas/Object'
+
