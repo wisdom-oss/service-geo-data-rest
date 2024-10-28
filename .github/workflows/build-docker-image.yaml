@@ -1,7 +1,7 @@
 name: Create/Release Docker Image
 on:
   push:
-    branches: [ "main", "stable", "dev" ]
+    branches: [ "main", "dev" ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
   pull_request:
@@ -11,7 +11,7 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME: wisdom-oss/geodata-service
+  IMAGE_NAME: wisdom-oss/service-geodata
 
 
 jobs:

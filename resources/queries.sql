@@ -18,6 +18,11 @@ WHERE
 SELECT id, st_transform(geometry, 4326) AS geometry, key, name, additional_properties
 FROM geodata.%s;
 
+-- name: get-layer-object-by-key
+SELECT id, st_transform(geometry, 4326) AS geometry, key, name, additional_properties
+FROM geodata.%s
+WHERE key = $1::text;
+
 -- name: crate-layer-definition
 INSERT INTO geodata.layers(name, description, "table", crs, attribution)
 VALUES ($1, $2, $3, $4, $5)

@@ -1,12 +1,10 @@
 name: Update Documentation
 on:
-  workflow_dispatch:
   push:
     paths:
       - 'docs/**'
       - 'static_docs/**'
       - 'README.md'
-      - 'openapi.yaml'
 
 jobs:
   trigger-update:

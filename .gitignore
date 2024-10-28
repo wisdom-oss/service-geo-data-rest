@@ -36,7 +36,8 @@
 # allow the following folders
 !globals/
 !routes/
-!config/
 !types/
-!filters/
-!helpers/
+!internal
+!internal/**
+!middlewares
+!middlewares/*

@@ -1,25 +1,15 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"os"
-	"os/exec"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-	pgxgeom "github.com/twpayne/pgx-geom"
-	wisdomType "github.com/wisdom-oss/commonTypes/v2"
 
 	_ "github.com/joho/godotenv/autoload"
 
-	"github.com/qustavo/dotsql"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
 
-	"microservice/config"
-	"microservice/globals"
+	_ "microservice/internal/db" // side effect import to connect to the database and parse the sql queries from it's embed
 
 	_ "github.com/wisdom-oss/go-healthcheck/client"
 )
@@ -28,11 +18,6 @@ import (
 // before main
 func init() {
 	configureLogger()
-	loadServiceConfiguration()
-	connectDatabase()
-	loadPreparedQueries()
-	checkGDALSrsInfo()
-	log.Info().Msg("initialization process finished")
 }
 
 // configureLogger handles the configuration of the logger used in the
@@ -67,99 +52,4 @@ func configureLogger() {
 	}
 	// since now a logging level is set, configure the logger
 	zerolog.SetGlobalLevel(loggingLevel)
-}
-
-// loadServiceConfiguration handles loading the `environment.json` file which
-// describes which environment variables are needed for the service to function
-// and what variables are optional and their default values.
-// The default loading location is set by the config.EnvironmentFilePath
-// constant.
-// This constant may change depending on the build tag used during the compile
-// time
-func loadServiceConfiguration() {
-	log.Info().Msg("loading service configuration from environment")
-	// now check if the default location for the environment configuration
-	// was changed via the `ENV_CONFIG_LOCATION` variable
-	location, locationChanged := os.LookupEnv("ENV_CONFIG_LOCATION")
-	if !locationChanged {
-		// since the location has not changed, set the default value
-		location = config.EnvironmentFilePath
-		log.Debug().Msg("location for environment config not changed")
-	}
-	log.Debug().Str("path", location).Msg("loading environment requirements file")
-	var c wisdomType.EnvironmentConfiguration
-	err := c.PopulateFromFilePath(location)
-	if err != nil {
-		log.Fatal().Err(err).Msg("unable to load environment requirements file")
-	}
-	log.Info().Msg("validating environment variables")
-	globals.Environment, err = c.ParseEnvironment()
-	if err != nil {
-		log.Fatal().Err(err).Msg("environment validation failed")
-	}
-	log.Info().Msg("loaded service configuration from environment")
-}
-
-// connectDatabase uses the previously read environment variables to connect the
-// microservice to the PostgreSQL database used as the backend for all WISdoM
-// services
-func connectDatabase() {
-	log.Info().Msg("connecting to the database")
-
-	address := fmt.Sprintf("postgres://%s:%s@%s:%s/wisdom",
-		globals.Environment["PG_USER"], globals.Environment["PG_PASS"],
-		globals.Environment["PG_HOST"], globals.Environment["PG_PORT"])
-
-	var err error
-	pgxConfig, err := pgxpool.ParseConfig(address)
-	pgxConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		if err := pgxgeom.Register(ctx, conn); err != nil {
-			return err
-		}
-		return nil
-	}
-	if err != nil {
-		log.Fatal().Err(err).Msg("unable to create base configuration for connection pool")
-	}
-	globals.Db, err = pgxpool.NewWithConfig(context.Background(), pgxConfig)
-	if err != nil {
-		log.Fatal().Err(err).Msg("unable to create database connection pool")
-	}
-	err = globals.Db.Ping(context.Background())
-	if err != nil {
-		log.Fatal().Err(err).Msg("unable to verify the connection to the database")
-	}
-	log.Info().Msg("database connection established")
-}
-
-// loadPreparedQueries loads the prepared SQL queries from a file specified by
-// the QUERY_FILE_LOCATION environment variable or the config.QueryFilePath
-// constant.
-// It initializes the globals.SqlQueries variable with the loaded queries.
-// If there is an error loading the queries, it logs a fatal error and the
-// program terminates.
-// This function is typically called during the startup of the microservice.
-func loadPreparedQueries() {
-	log.Info().Msg("loading prepared sql queries")
-	var err error
-	location, locationChanged := os.LookupEnv("QUERY_FILE_LOCATION")
-	if !locationChanged {
-		// since the location has not changed, set the default value
-		location = config.QueryFilePath
-		log.Debug().Str("default", config.QueryFilePath).Msg("location for sql query file has not been changed")
-	}
-	globals.SqlQueries, err = dotsql.LoadFromFile(location)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to load prepared queries")
-	}
-}
-
-// checkGDALSrsInfo checks if the gdalsrsinfo command is available as it is used
-// to determine the EPSG code of the geometries while inserting them into the
-// database
-func checkGDALSrsInfo() {
-	_, err := exec.LookPath("gdalsrsinfo")
-	if err != nil {
-		log.Fatal().Msg("required executable gdalsrsinfo not found in PATH")
-	}
 }

@@ -5,9 +5,8 @@ RUN mkdir -p /tmp/build
 RUN go mod download
 RUN go build -tags docker -o /tmp/build/app
 
-FROM ghcr.io/osgeo/gdal:alpine-small-latest
+FROM docker.io/alpine:latest
 COPY --from=build-service /tmp/build/app /service
-COPY resources/* /
 ENTRYPOINT ["/service"]
 ARG GH_REPO=unset
 ARG GH_VERSION=unset

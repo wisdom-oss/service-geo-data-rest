@@ -1,70 +1,31 @@
 package routes
 
 import (
-	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
-
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	errorMiddleware "github.com/wisdom-oss/microservice-middlewares/v5/error"
+	"github.com/gin-gonic/gin"
 
-	"microservice/globals"
+	"microservice/internal/db"
 	"microservice/types"
 )
 
-func LayerContents(w http.ResponseWriter, r *http.Request) {
-	errorHandler := r.Context().Value(errorMiddleware.ChannelName).(chan<- interface{})
+func LayerContents(c *gin.Context) {
+	layerInterface, _ := c.Get("layer")
+	layer, _ := layerInterface.(types.Layer)
 
-	layerID := chi.URLParam(r, LayerIdUrlKey)
-	if layerID == "" {
-		errorHandler <- ErrEmptyLayerID
+	query, err := layer.ContentQuery()
+	if err != nil {
+		c.Abort()
+		_ = c.Error(err)
 		return
 	}
 
-	query, err := globals.SqlQueries.Raw("get-layer")
+	var layerContents []types.Object
+	err = pgxscan.Select(c, db.Pool, &layerContents, query)
 	if err != nil {
-		errorHandler <- err
-		return
-	}
-	err = uuid.Validate(layerID)
-	if err != nil {
-		query, err = globals.SqlQueries.Raw("get-layer-by-url-key")
-		if err != nil {
-			errorHandler <- err
-			return
-		}
-	}
-
-	var layer types.Layer
-	err = pgxscan.Get(context.Background(), globals.Db, &layer, query, layerID)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			errorHandler <- ErrUnknownLayerID
-			return
-		}
-		errorHandler <- err
+		c.Abort()
+		_ = c.Error(err)
 		return
 	}
 
-	query, err = globals.SqlQueries.Raw("get-layer-contents")
-	if err != nil {
-		errorHandler <- err
-		return
-	}
-	query = fmt.Sprintf(query, layer.TableName.String)
-
-	var objects []types.Object
-	err = pgxscan.Select(context.Background(), globals.Db, &objects, query)
-	if err != nil {
-		errorHandler <- err
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(objects)
+	c.JSON(200, layerContents)
 }

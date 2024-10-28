@@ -121,198 +121,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Layer'
-  /create:
-    post:
-      summary: Create New Layer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-              properties:
-                name:
-                  type: string
-                  description: Name of the new Layer
-                description:
-                  type: string
-                  description: A textual description of the new layer
-                viewConfiguration:
-                  type: object
-                  required:
-                    - schema
-                    - table
-                    - name
-                    - id
-                    - key
-                    - geometry
-                  properties:
-                    schema:
-                      type: string
-                      description: |
-                        The name of the db schema in which the table is stored
-                        that is used while creating the view
-                    table:
-                      type: string
-                      description: |
-                        The name of the table in the db schema which is used as
-                        base for the view
-                    id:
-                      type: string
-                      description: |
-                        The name of the column which is used as ID column on the
-                        view
-                    key:
-                      type: string
-                      description: |
-                        The name of the column which is used as `key` property
-                        in the returned layer contents
-                    geometry:
-                      type: string
-                      description: |
-                        The name of the column which is used as `geometry`
-                        property in the returned layer contents.
-                    name:
-                      type: string
-                      description: |
-                        The name of the column which contains the name of the
-                        geometry
-                    additionalPropertyKeys:
-                      type: array
-                      description: |
-                        An array of additional columns from the original table
-                        that are used to generate the additional properties on
-                        the response
-                      items:
-                        type: string
-                    whereCondition:
-                      type: string
-                      description: |
-                        An optional plain sql where condition to filter the view
-                        further
-          multipart/form-data:
-            schema:
-              allOf:
-                - type: object
-                  required:
-                    - layer.name
-                    - attributes.key
-                    - attributes.name
-                  properties:
-                    layer.name:
-                      type: string
-                      title: Layer Name
-                      description: |
-                        The layer name is used to display a human readable name
-                        in the frontend and API applications and is also used as
-                        table name in the database
-                    layer.description:
-                      type: string
-                      description: |
-                        The layer description may contain additional information
-                        about the layers
-                    layer.attribution:
-                      type: string
-                      description: |
-                        An attribution to the source of the layer
-                    attributes.key:
-                      type: string
-                      title: Key Attribute Identifier
-                      description: >
-                        The key attribute identifier is used to determine which
-                        of the attributes available in the shapefile should be
-                        used as values for the `key` column. The value in this
-                        field needs to be unique in the whole shapefile.
-                    attributes.name:
-                      type: string
-                      title: Name Attribute Identifier
-                      description: >
-                        The name attribute identifier is used to determine which
-                        of the attributes available in the shapefile should be
-                        used as value for the `name` column.
-                    additional-attribute:
-                      type: array
-                      description: >
-                        The names of additional columns that should be moved
-                        into a JSON object containing additional attributes
-                      items:
-                        type: string
-                        description: |
-                          A name of a column available in the shapefile
-                - oneOf:
-                  - type: object
-                    title: Archive Upload
-                    properties:
-                      archive:
-                        type: string
-                        format: binary
-                        description: The ZIP file containing the shape file
-                  - type: object
-                    title: Plain File Upload
-                    externalDocs:
-                      url: https://en.wikipedia.org/wiki/Shapefile
-                    required:
-                      - shp
-                      - dbf
-                      - shx
-                      - prj
-                    properties:
-                      shp:
-                        type: string
-                        format: binary
-                        description: |
-                          Layer Geometry File (`*.shp`)
-                          
-                          This file should contain the actual geometries that will
-                          be inserted into the database.
-                      dbf:
-                        type: string
-                        format: binary
-                        description: |
-                          Layer Attributes (`*.dbf`)
-                          
-                          This file should contain the attributes for the 
-                          each shape contained in the Layer Geometry File
-                      shx:
-                        type: string
-                        format: binary
-                        description: |
-                          Shape Index (`*.shx`)
-                          
-                          This file contains a geospatial index to allow fast
-                          seeking in the layer geometry
-                      prj:
-                        type: string
-                        format: binary
-                        description: |
-                          Projection Description (`*.prj`)
-                          
-                          This file contains the description of the used
-                          projection as [Well Known Text] representation of the
-                          coordinate reference system.
-                          
-                          [Well Known Text]: https://en.wikipedia.org/wiki/Well-known_text_representation_of_coordinate_reference_systems
-                      cpg:
-                        type: string
-                        format: binary
-                        description: |
-                          DBF Codepage File (`*.cpg`)
-                          
-                          This file specifies the code page to identify the
-                          character encoding used in the layer attributes
-
-      responses:
-        201:
-          description: |
-            The layer has been created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Layer'
-        400:
-          description: The Layers configuration was faulty
-
 
 
   /content/{layer-ref}:
@@ -339,23 +147,34 @@ paths:
   /content/{layer-ref}/filtered:
     parameters:
       - $ref: '#/components/parameters/LayerID'
-    post:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              example:
-                filterName:
-                  00000000-0000-0000-0000-000000000000:
-                    - "key1"
-                    - "key2"
-                    - "key3"
-                    - "key4"
-              additionalProperties:
-                additionalProperties:
-                  type: array
-                  items:
-                    type: string
+    get:
+      parameters:
+        - in: query
+          name: relation
+          schema:
+            type: string
+            enum:
+              - within
+              - overlaps
+              - contains
+          description: >
+            The geospatial relation between the base layer and the other layer
+        - in: query
+          name: other_layer
+          schema:
+            type: string
+          description: |
+            The UUID or URL key of the other layer used for the geospatial
+            relation
+        - in: query
+          name: key
+          schema:
+            type: array
+            items:
+              type: string
+          description: >
+            One or multiple keys which are taken from the other layer and
+            intersected with the base layer
       summary: Filtered Layer Contents
       externalDocs:
         url: https://postgis.net/docs/reference.html#idm12722
@@ -385,3 +204,28 @@ paths:
                   information is available on a single entry of this response.
                 items:
                   $ref: "#/components/schemas/Object"
+  /identify:
+    get:
+      parameters:
+        - in: query
+          name: key
+          schema:
+            type: array
+            items:
+              type: string
+          description: An array of keys which should be identified
+
+      responses:
+        200:
+          description: The identified objects
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Object'
+
