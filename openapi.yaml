@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: Geospatial Data Service
+  description: |
+    This microservice allows access to the different layers of geospatial data
+    stored on the WISdoM platform.
+    The geospatial data is always returned in the same way to allow a coherent
+    output for all layers stored.
+    Since some layers contain additional information and properties on a
+    geometry these are also returned has a hash map
+  version: 2.0.0
+servers:
+  - url: '/api/geodata'
+
+components:
+  responses:
+    UnknownLayer:
+      description: The Layer is unknown
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  parameters:
+    LayerID:
+      in: path
+      name: layer-ref
+      description: The UUID or Key for the layer that should be shown
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - type
+        - status
+        - title
+        - detail
+        - instance
+      properties:
+        type:
+          type: string
+        status:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        instance:
+          type: string
+        error:
+          type: string
+    Object:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: database-generated
+        name:
+          type: string
+        key:
+          type: string
+          description: |
+            identifies an object in requests as it is specific to the layer and
+            the key definition
+        additionalProperties:
+          additionalProperties: true
+        geometry:
+          type: object
+          description: A GeoJSON representation of the objects geometry
+    Layer:
+      type: object
+      required:
+        - id
+        - name
+        - key
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        key:
+          type: string
+        attribution:
+          type: string
+          description: |
+            A attribution for the data contained in the layer
+        crs:
+          type: integer
+          title: Coordinate Reference System
+          description: |
+            The EPSG code for the coordinate reference system used in the layer
+paths:
+  /:
+    get:
+      summary: Retrieve available Layers
+      responses:
+        200:
+          description: Layers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Layer'
+        204:
+          description: No layers available
+  /{layer-ref}:
+    parameters:
+      - $ref: '#/components/parameters/LayerID'
+    get:
+      summary: Get layer information
+      responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
+
+        200:
+          description: Layer Information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Layer'
+
+
+  /content/{layer-ref}:
+    parameters:
+      - $ref: '#/components/parameters/LayerID'
+    get:
+      summary: Layer Contents
+      responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
+        200:
+          description: The layers contents
+          content:
+            application/json:
+              schema:
+                type: array
+                description: |
+                  An array containing the single entries of the layer 
+                  represented in GeoJSON.
+                  Due to the possibility of mixed entries in a layer no actual
+                  information is available on a single entry of this response.
+                items:
+                  $ref: "#/components/schemas/Object"
+  /content/{layer-ref}/filtered:
+    parameters:
+      - $ref: '#/components/parameters/LayerID'
+    get:
+      parameters:
+        - in: query
+          name: relation
+          schema:
+            type: string
+            enum:
+              - within
+              - overlaps
+              - contains
+          description: >
+            The geospatial relation between the base layer and the other layer
+        - in: query
+          name: other_layer
+          schema:
+            type: string
+          description: |
+            The UUID or URL key of the other layer used for the geospatial
+            relation
+        - in: query
+          name: key
+          schema:
+            type: array
+            items:
+              type: string
+          description: >
+            One or multiple keys which are taken from the other layer and
+            intersected with the base layer
+      summary: Filtered Layer Contents
+      externalDocs:
+        url: https://postgis.net/docs/reference.html#idm12722
+      description: |
+        This endpoint allows filtering the contents of the given layer (set by
+        layer-id) against different geospatial relations.
+        Currently the service supports the following geospatial relations:
+          * `contains`
+          * `overlaps`
+          * `within`
+        
+        These functions all use the names as they are used in the PostGIS
+        extension to allow a consistent usage throughout the service
+      responses:
+        404:
+          $ref: '#/components/responses/UnknownLayer'
+        200:
+          description: The layers contents
+          content:
+            application/json:
+              schema:
+                type: array
+                description: |
+                  An array containing the single entries of the layer 
+                  represented in GeoJSON.
+                  Due to the possibility of mixed entries in a layer no actual
+                  information is available on a single entry of this response.
+                items:
+                  $ref: "#/components/schemas/Object"
+  /identify:
+    get:
+      parameters:
+        - in: query
+          name: key
+          schema:
+            type: array
+            items:
+              type: string
+          description: An array of keys which should be identified
+
+      responses:
+        200:
+          description: The identified objects
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Object'
+
