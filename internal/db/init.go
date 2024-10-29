@@ -19,6 +19,9 @@ func init() {
 
 	var err error
 	config, err := pgxpool.ParseConfig("")
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed to parse config")
+	}
 	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 		if err := pgxgeom.Register(ctx, conn); err != nil {
 			return err
