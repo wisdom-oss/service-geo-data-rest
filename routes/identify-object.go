@@ -11,17 +11,14 @@ import (
 	"microservice/types"
 )
 
-var _identifyObjectRequest struct {
-	Keys []string `form:"key"`
-}
-
 func IdentifyObject(c *gin.Context) {
+	var parameters struct {
+		Keys []string `form:"key" json:"keys" binding:"required"`
+	}
 
-	objects := make(map[string]map[string]types.Object)
-
-	if err := c.ShouldBind(&_identifyObjectRequest); err != nil {
+	if err := c.ShouldBind(&parameters); err != nil {
 		c.Abort()
-		_ = c.Error(err)
+		apiErrors.ErrMissingParameter.Emit(c)
 		return
 	}
 
@@ -40,8 +37,10 @@ func IdentifyObject(c *gin.Context) {
 		return
 	}
 
+	objects := make(map[string]map[string]types.Object)
+
 	for _, layer := range layers {
-		for _, key := range _identifyObjectRequest.Keys {
+		for _, key := range parameters.Keys {
 			query, err = layer.FilteredContentQuery()
 			if err != nil {
 				_ = c.Error(err)

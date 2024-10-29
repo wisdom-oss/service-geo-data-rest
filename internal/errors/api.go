@@ -22,3 +22,17 @@ var ErrUnsupportedSpatialRelation = types.ServiceError{
 	Title:  "Unsupported Spatial Relation",
 	Detail: "The selected spatial relation for the query is not supported",
 }
+
+var ErrMissingParameter = types.ServiceError{
+	Type:   "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1",
+	Status: 400,
+	Title:  "Request Missing Parameter",
+	Detail: "The request is missing a required parameter. Check the error field for more information",
+}
+
+var ErrUnknownTopLayer = types.ServiceError{
+	Type:   "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1",
+	Status: 400,
+	Title:  "Unknown Top Layer",
+	Detail: "The specified top layer is unknown.",
+}

@@ -13,19 +13,18 @@ import (
 	"microservice/types"
 )
 
-var _filteredLayer_parameters struct {
-	Relation   string   `json:"relation" form:"relation" binding:"required"`
-	Keys       []string `json:"key" form:"key" binding:"required"`
-	OtherLayer string   `json:"other_layer" form:"other_layer" binding:"required"`
-}
-
-var supportedRelations = []string{"within", "overlaps", "contains"}
-
 func FilteredLayerContents(c *gin.Context) {
+	var parameters struct {
+		Relation   string   `json:"relation" form:"relation" binding:"required"`
+		Keys       []string `json:"key" form:"key" binding:"required"`
+		OtherLayer string   `json:"other_layer" form:"other_layer" binding:"required"`
+	}
 
-	if err := c.ShouldBind(&_filteredLayer_parameters); err != nil {
+	if err := c.ShouldBind(&parameters); err != nil {
 		c.Abort()
-		_ = c.Error(err)
+		res := apiErrors.ErrMissingParameter
+		res.Errors = []error{err}
+		res.Emit(c)
 		return
 	}
 
@@ -36,7 +35,7 @@ func FilteredLayerContents(c *gin.Context) {
 		return
 	}
 
-	if err = uuid.Validate(_filteredLayer_parameters.OtherLayer); err != nil {
+	if err = uuid.Validate(parameters.OtherLayer); err != nil {
 		query, err = db.Queries.Raw("get-layer-by-url-key")
 		if err != nil {
 			c.Abort()
@@ -46,11 +45,11 @@ func FilteredLayerContents(c *gin.Context) {
 	}
 
 	var topLayer types.Layer
-	err = pgxscan.Get(c, db.Pool, &topLayer, query, _filteredLayer_parameters.OtherLayer)
+	err = pgxscan.Get(c, db.Pool, &topLayer, query, parameters.OtherLayer)
 	if err != nil {
 		c.Abort()
 		if pgxscan.NotFound(err) {
-			apiErrors.ErrUnknownLayer.Emit(c)
+			apiErrors.ErrUnknownTopLayer.Emit(c)
 			return
 		}
 		_ = c.Error(err)
@@ -58,19 +57,22 @@ func FilteredLayerContents(c *gin.Context) {
 	}
 
 	var objects []types.Object
-	switch _filteredLayer_parameters.Relation {
+	switch parameters.Relation {
 	case "within":
-		objects = filteredLayerContents_Within(c, topLayer, _filteredLayer_parameters.Keys)
+		objects = filteredLayerContents_Within(c, topLayer, parameters.Keys)
+		break
 
 	case "overlaps":
-		objects = filteredLayerContents_Overlaps(c, topLayer, _filteredLayer_parameters.Keys)
+		objects = filteredLayerContents_Overlaps(c, topLayer, parameters.Keys)
+		break
 
 	case "contains":
-		objects = filteredLayerContents_Contains(c, topLayer, _filteredLayer_parameters.Keys)
+		objects = filteredLayerContents_Contains(c, topLayer, parameters.Keys)
+		break
 
 	default:
 		c.Abort()
-		apiErrors.ErrUnknownLayer.Emit(c)
+		apiErrors.ErrUnsupportedSpatialRelation.Emit(c)
 		return
 	}
 
