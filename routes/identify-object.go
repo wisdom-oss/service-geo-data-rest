@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gin-gonic/gin"
@@ -38,33 +39,41 @@ func IdentifyObject(c *gin.Context) {
 	}
 
 	objects := make(map[string]map[string]types.Object)
-
-	for _, layer := range layers {
-		for _, key := range parameters.Keys {
-			query, err = layer.FilteredContentQuery()
-			if err != nil {
-				_ = c.Error(err)
-				continue
-			}
-			var object types.Object
-			err = pgxscan.Get(c, db.Pool, &object, query, key)
-			if err != nil {
-				if pgxscan.NotFound(err) {
+	var wg sync.WaitGroup
+	var mapLock sync.Mutex
+	for _, k := range parameters.Keys {
+		wg.Add(1)
+		go func(key string) {
+			defer wg.Done()
+			for _, l := range layers {
+				query, err = l.FilteredContentQuery()
+				if err != nil {
+					_ = c.Error(err)
 					continue
 				}
-				c.Abort()
-				_ = c.Error(err)
-				continue
+				var object types.Object
+				err = pgxscan.Get(c, db.Pool, &object, query, key)
+				if err != nil {
+					if pgxscan.NotFound(err) {
+						continue
+					}
+					c.Abort()
+					_ = c.Error(err)
+					continue
+				}
+				mapLock.Lock()
+				if objects[l.TableName] == nil {
+					objects[l.TableName] = make(map[string]types.Object)
+				}
+				objects[l.TableName][key] = object
+				mapLock.Unlock()
 			}
-			if objects[layer.TableName] == nil {
-				objects[layer.TableName] = make(map[string]types.Object)
-			}
-			objects[layer.TableName][key] = object
-		}
-	}
+		}(k)
 
+	}
+	wg.Wait()
 	if c.IsAborted() {
-		panic("error in layer identification")
+		return
 	}
 	if len(objects) == 0 {
 		apiErrors.ErrUnknownObject.Emit(c)
