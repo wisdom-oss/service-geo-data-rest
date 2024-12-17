@@ -1,9 +1,9 @@
-package errors
+package config
 
 import (
 	"net/http"
 
-	"github.com/wisdom-oss/common-go/v2/types"
+	"github.com/wisdom-oss/common-go/v3/types"
 )
 
 var MethodNotAllowed types.ServiceError = types.ServiceError{

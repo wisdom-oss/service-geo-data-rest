@@ -16,6 +16,7 @@ type Layer struct {
 	TableName                 string      `json:"key" db:"table"`
 	Attribution               pgtype.Text `json:"attribution" db:"attribution"`
 	CoordinateReferenceSystem pgtype.Int4 `json:"crs" db:"crs"`
+	Private                   bool        `json:"private" db:"private"`
 }
 
 func (l Layer) ContentQuery() (string, error) {

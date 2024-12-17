@@ -12,7 +12,6 @@ import (
 
 func ResolveLayer(c *gin.Context) {
 	layerID := c.Param("layerID")
-
 	query, err := db.Queries.Raw("get-layer")
 	if err != nil {
 		c.Abort()
@@ -41,5 +40,12 @@ func ResolveLayer(c *gin.Context) {
 		return
 	}
 
+	if layer.Private && !c.GetBool("AccessPrivateLayers") {
+		c.Abort()
+		apiErrors.ErrLayerPrivate.Emit(c)
+		return
+	}
+
 	c.Set("layer", layer)
+	c.Next()
 }

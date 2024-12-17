@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "ms-azuretools.vscode-docker",
+        "golang.go",
+        "inferrinizzard.prettier-sql-vscode",
+        "42Crunch.vscode-openapi",
+        "Gruntfuggly.todo-tree",
+        "ckolkman.vscode-postgres"
+    ]
+}
