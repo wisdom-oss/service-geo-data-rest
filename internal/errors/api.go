@@ -1,6 +1,6 @@
 package errors
 
-import "github.com/wisdom-oss/common-go/v2/types"
+import "github.com/wisdom-oss/common-go/v3/types"
 
 var ErrUnknownLayer = types.ServiceError{
 	Type:   "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.5",
@@ -35,4 +35,11 @@ var ErrUnknownTopLayer = types.ServiceError{
 	Status: 400,
 	Title:  "Unknown Top Layer",
 	Detail: "The specified top layer is unknown.",
+}
+
+var ErrLayerPrivate = types.ServiceError{
+	Type:   "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1",
+	Status: 403,
+	Title:  "Forbidden Layer Accessed",
+	Detail: "The specified layer requires more access priviliges to be displayed.",
 }
