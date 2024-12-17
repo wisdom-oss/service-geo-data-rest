@@ -6,9 +6,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/qustavo/dotsql"
 	"github.com/rs/zerolog/log"
 	pgxgeom "github.com/twpayne/pgx-geom"
+
+	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/lock"
 
 	"microservice/resources"
 )
@@ -59,4 +64,39 @@ func init() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load prepared queries")
 	}
+
+	migrateSchema()
+
+}
+
+func migrateSchema() {
+	db := stdlib.OpenDBFromPool(Pool)
+
+	fsys, err := fs.Sub(resources.MigrationFiles, "migrations")
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to open embedded migration file folder")
+	}
+
+	locker, err := lock.NewPostgresSessionLocker()
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to create locker for migrations")
+
+	}
+
+	store, err := database.NewStore(database.DialectPostgres, "migrations_geodata")
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to create custom store for migrations")
+	}
+
+	migrationProvider, err := goose.NewProvider("", db, fsys, goose.WithStore(store), goose.WithSessionLocker(locker))
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to create migration provider")
+	}
+
+	_, err = migrationProvider.Up(context.Background())
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to migrate database version")
+	}
+
 }
