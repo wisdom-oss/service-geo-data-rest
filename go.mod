@@ -18,9 +18,8 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/twpayne/go-geom v1.5.7
 	github.com/twpayne/pgx-geom v0.0.2
-	github.com/wisdom-oss/common-go/v2 v2.0.2
-	github.com/wisdom-oss/common-go/v3 v3.1.0
-	github.com/wisdom-oss/go-healthcheck v1.0.2
+	github.com/wisdom-oss/common-go/v3 v3.1.1
+	github.com/wisdom-oss/go-healthcheck v1.0.5
 
 )
 
