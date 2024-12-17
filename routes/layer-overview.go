@@ -20,7 +20,7 @@ func LayerOverview(c *gin.Context) {
 	}
 
 	var layers []types.Layer
-	err = pgxscan.Select(c, db.Pool, &layers, query)
+	err = pgxscan.Select(c, db.Pool, &layers, query, c.GetBool("AccessPrivateLayers"))
 	if err != nil {
 		c.Abort()
 		_ = c.Error(err)
