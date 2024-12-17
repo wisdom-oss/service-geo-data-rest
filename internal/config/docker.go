@@ -10,13 +10,14 @@ package config
 
 import (
 	"github.com/gin-contrib/gzip"
+	"github.com/gin-contrib/logger"
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
-
 	"github.com/rs/zerolog"
-	"github.com/wisdom-oss/common-go/v2/middleware"
+
+	errorHandler "github.com/wisdom-oss/common-go/v3/middleware/gin/error-handler"
+	"github.com/wisdom-oss/common-go/v3/middleware/gin/recoverer"
 )
-import "github.com/gin-contrib/logger"
-import "github.com/gin-contrib/requestid"
 
 const ListenAddress = "0.0.0.0:8000"
 
@@ -30,29 +31,14 @@ func init() {
 //   - gin.Logger
 func Middlewares() []gin.HandlerFunc {
 	var middlewares []gin.HandlerFunc
-
+	middlewares = append(middlewares, gin.CustomRecovery(recoverer.RecoveryHandler))
 	middlewares = append(middlewares,
 		logger.SetLogger(
 			logger.WithDefaultLevel(zerolog.DebugLevel),
 			logger.WithUTC(false),
 		))
-
 	middlewares = append(middlewares, gzip.Gzip(gzip.DefaultCompression))
 	middlewares = append(middlewares, requestid.New())
-	middlewares = append(middlewares, middleware.ErrorHandler{}.Gin)
-	middlewares = append(middlewares, gin.CustomRecovery(middleware.RecoveryHandler))
-
-	// read the OpenID Connect issuer from the environment
-
-	// TODO: REACTIVATE AS SOON AS USERMANAGEMENT IS ACTIVE
-
-	/*oidcIssuer := os.Getenv("OIDC_AUTHORITY")
-	jwtValidator := middleware.JWTValidator{}
-	err := jwtValidator.DiscoverAndConfigure(oidcIssuer)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to discover and configure JWT Validation")
-	}
-
-	middlewares = append(middlewares, jwtValidator.GinHandler)*/
+	middlewares = append(middlewares, errorHandler.Handler)
 	return middlewares
 }

@@ -10,12 +10,14 @@ package config
 
 import (
 	"github.com/gin-contrib/gzip"
+	"github.com/gin-contrib/logger"
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
-	"github.com/wisdom-oss/common-go/v2/middleware"
+
+	errorHandler "github.com/wisdom-oss/common-go/v3/middleware/gin/error-handler"
+	"github.com/wisdom-oss/common-go/v3/middleware/gin/recoverer"
 )
-import "github.com/gin-contrib/logger"
-import "github.com/gin-contrib/requestid"
 
 const ListenAddress = "127.0.0.1:8000"
 
@@ -24,7 +26,7 @@ const ListenAddress = "127.0.0.1:8000"
 //   - gin.Logger
 func Middlewares() []gin.HandlerFunc {
 	var middlewares []gin.HandlerFunc
-	middlewares = append(middlewares, gin.CustomRecovery(middleware.RecoveryHandler))
+	middlewares = append(middlewares, gin.CustomRecovery(recoverer.RecoveryHandler))
 	middlewares = append(middlewares,
 		logger.SetLogger(
 			logger.WithDefaultLevel(zerolog.DebugLevel),
@@ -32,6 +34,6 @@ func Middlewares() []gin.HandlerFunc {
 		))
 	middlewares = append(middlewares, gzip.Gzip(gzip.DefaultCompression))
 	middlewares = append(middlewares, requestid.New())
-	middlewares = append(middlewares, middleware.ErrorHandler{}.Gin)
+	middlewares = append(middlewares, errorHandler.Handler)
 	return middlewares
 }
