@@ -23,7 +23,7 @@ type Object struct {
 // is manually encoded and decoded as the geom.T interface doesn't implement
 // the [json.Marshaler] interface
 type _object struct {
-	ID                   uint64                 `json:"-"`
+	ID                   uint64                 `json:"id"`
 	Geometry             json.RawMessage        `json:"geometry"`
 	Name                 *string                `json:"name"`
 	Key                  string                 `json:"key"`

@@ -33,6 +33,10 @@ components:
       required: true
       name: layer-ref
       description: The UUID or Key for the layer that should be shown
+      allowEmptyValue: false
+      schema:
+        type: string
+        
   schemas:
     ErrorResponse:
       type: object
@@ -57,6 +61,11 @@ components:
           type: string
     Object:
       type: object
+      required:
+        - id
+        - name
+        - key
+        - geometry
       properties:
         id:
           type: integer
