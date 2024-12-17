@@ -20,6 +20,12 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    PrivateLayer:
+      description: The layer is not accessible
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     UnknownLayer:
       description: The Layer is unknown
       content:
@@ -107,6 +113,9 @@ components:
           title: Coordinate Reference System
           description: |
             The EPSG code for the coordinate reference system used in the layer
+        private:
+          type: boolean
+          default: false
 paths:
   /:
     get:
@@ -128,8 +137,11 @@ paths:
     get:
       summary: Get layer information
       responses:
+        403:
+          $ref: '#/components/responses/PrivateLayer'
         404:
           $ref: '#/components/responses/UnknownLayer'
+
 
         200:
           description: Layer Information
@@ -145,6 +157,8 @@ paths:
     get:
       summary: Layer Contents
       responses:
+        403:
+          $ref: '#/components/responses/PrivateLayer'
         404:
           $ref: '#/components/responses/UnknownLayer'
         200:
@@ -208,6 +222,8 @@ paths:
         These functions all use the names as they are used in the PostGIS
         extension to allow a consistent usage throughout the service
       responses:
+        403:
+          $ref: '#/components/responses/PrivateLayer'
         404:
           $ref: '#/components/responses/UnknownLayer'
         200:
