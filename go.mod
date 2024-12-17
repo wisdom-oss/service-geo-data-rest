@@ -4,7 +4,6 @@ go 1.23.0
 
 require (
 	github.com/georgysavva/scany/v2 v2.1.3
-	github.com/gin-contrib/gzip v1.0.1
 	github.com/gin-contrib/logger v1.1.2
 	github.com/gin-contrib/requestid v1.0.3
 	github.com/gin-gonic/gin v1.10.0
