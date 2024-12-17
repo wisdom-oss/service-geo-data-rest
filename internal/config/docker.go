@@ -56,7 +56,7 @@ func Middlewares() []gin.HandlerFunc {
 	if err != nil {
 		panic(err)
 	}
-
+	validator.EnableOptional()
 	middlewares = append(middlewares, validator.Handler)
 
 	return middlewares
