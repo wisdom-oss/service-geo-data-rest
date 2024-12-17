@@ -1,0 +1,43 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "go: build (debug)",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "build",
+                "-gcflags=all=-N -l",
+                "-o",
+                "${workspaceFolder}/__debug_bin"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "go: build (docker)",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "build",
+                "-tags=docker,nomsgpack,go_json",
+                "-gcflags=all=-N -l",
+                "-o",
+                "${workspaceFolder}/__docker_bin"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "docker: build image",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "build",
+                "."
+            ]
+        }
+    ]
+}
