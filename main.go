@@ -5,16 +5,12 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	"github.com/wisdom-oss/common-go/v2/middleware"
-	"github.com/wisdom-oss/common-go/v2/types"
 	healthcheckServer "github.com/wisdom-oss/go-healthcheck/server"
 
 	"microservice/internal"
 	"microservice/internal/config"
 	"microservice/internal/db"
-	"microservice/internal/errors"
 	"microservice/middlewares"
 	"microservice/routes"
 )
@@ -38,25 +34,14 @@ func main() {
 	}
 	go hcServer.Run()
 
-	// shorthand for requiring scope
-	requireScope := middleware.RequireScope{}.Gin
-
-	r := gin.New()
-	r.HandleMethodNotAllowed = true
-	_ = r.SetTrustedProxies(nil)
-	r.Use(config.Middlewares()...)
-	r.NoMethod(func(c *gin.Context) {
-		errors.MethodNotAllowed.Emit(c)
-	})
-	r.NoRoute(func(c *gin.Context) {
-		errors.NotFound.Emit(c)
-	})
+	r := config.PrepareRouter()
+	r.Use(middlewares.EnablePrivateLayers)
 
 	r.GET("/", routes.LayerOverview)
 	r.GET("/:layerID", middlewares.ResolveLayer, routes.LayerInformation)
 	r.GET("/identify", routes.IdentifyObject)
 
-	content := r.Group("/content", requireScope(internal.ServiceName, types.ScopeRead), middlewares.ResolveLayer)
+	content := r.Group("/content", middlewares.ResolveLayer)
 	{
 		content.GET("/:layerID", routes.LayerContents)
 		content.GET("/:layerID/filtered", routes.FilteredLayerContents)
