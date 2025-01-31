@@ -1,46 +1,31 @@
-# ignore all files in the repository
+# Allowlisting gitignore template for GO projects prevents us
+# from adding various unwanted local files, such as generated
+# files, developer configurations or IDE-specific files etc.
+#
+# Recommended: Go.AllowList.gitignore
+
+# Ignore everything
 *
 
-# allow the gitignore file itself
-!.gitignore
+# But not these files...
+!/.gitignore
 
-# allow all files in the static_docs directory
-!static_docs
-!static_docs/**
-
-# allow github workflows
-!.github
-!.github/*.yaml
-!.github/workflows
-!.github/workflows/*.yaml
-
-# allow .vscode folder
-!.vscode/
-
-# allow markdown files
-!*.md
-
-# now allow all documentation files
-!README.md
-!openapi.yaml
-
-# now allow the Dockerfile
-!Dockerfile
-
-# now allow all files in the resources directory
-!resources
-!resources/**
-
-# allow all .go files
 !*.go
-!go.mod
 !go.sum
+!go.mod
 
-# allow the following folders
-!globals/
-!routes/
-!types/
-!internal
-!internal/**
-!middlewares
-!middlewares/*
+!README.md
+!CODE_OF_CONDUCT.md
+!LICENSE
+!.golangci.yml
+!docs/*
+!.vscode/*
+!.github/**
+!Dockerfile
+!openapi.yaml
+!/resources/**
+
+# !Makefile
+
+# ...even if they are in subdirectories
+!*/
