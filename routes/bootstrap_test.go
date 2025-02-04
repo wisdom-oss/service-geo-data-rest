@@ -7,6 +7,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/pb33f/libopenapi"
+
 	validator "github.com/pb33f/libopenapi-validator"
 )
 
