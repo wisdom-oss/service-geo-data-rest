@@ -15,9 +15,9 @@ import (
 
 func FilteredLayerContents(c *gin.Context) {
 	var parameters struct {
-		Relation   string   `json:"relation" form:"relation" binding:"required"`
-		Keys       []string `json:"key" form:"key" binding:"required"`
-		OtherLayer string   `json:"other_layer" form:"other_layer" binding:"required"`
+		Relation   string   `binding:"required" form:"relation"    json:"relation"`
+		Keys       []string `binding:"required" form:"key"         json:"key"`
+		OtherLayer string   `binding:"required" form:"other_layer" json:"other_layer"`
 	}
 
 	if err := c.ShouldBind(&parameters); err != nil {

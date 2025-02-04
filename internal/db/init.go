@@ -7,13 +7,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/qustavo/dotsql"
-	"github.com/rs/zerolog/log"
-	pgxgeom "github.com/twpayne/pgx-geom"
-
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/lock"
+	"github.com/qustavo/dotsql"
+	"github.com/rs/zerolog/log"
+
+	pgxgeom "github.com/twpayne/pgx-geom"
 
 	"microservice/resources"
 )

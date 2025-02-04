@@ -14,7 +14,7 @@ import (
 
 func IdentifyObject(c *gin.Context) {
 	var parameters struct {
-		Keys []string `form:"key" json:"keys" binding:"required"`
+		Keys []string `binding:"required" form:"key" json:"keys"`
 	}
 
 	if err := c.ShouldBind(&parameters); err != nil {

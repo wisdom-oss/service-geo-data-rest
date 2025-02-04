@@ -4,18 +4,17 @@ import (
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
+	_ "github.com/wisdom-oss/go-healthcheck/client"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
 
 	_ "microservice/internal/db" // side effect import to connect to the database and parse the sql queries from it's embed
-
-	_ "github.com/wisdom-oss/go-healthcheck/client"
 )
 
 // init is executed at every startup of the microservice and is always executed
-// before main
+// before main.
 func init() {
 	configureLogger()
 }
@@ -24,7 +23,7 @@ func init() {
 // microservice. it reads the logging level from the `LOG_LEVEL` environment
 // variable and sets it according to the parsed logging level. if an invalid
 // value is supplied or no level is supplied, the service defaults to the
-// `INFO` level
+// `INFO` level.
 func configureLogger() {
 	// set the time format to unix timestamps to allow easier machine handling
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix

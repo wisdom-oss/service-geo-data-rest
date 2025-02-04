@@ -11,15 +11,14 @@ package config
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
-
 	"github.com/gin-contrib/logger"
 	"github.com/gin-contrib/requestid"
-
-	errorHandler "github.com/wisdom-oss/common-go/v3/middleware/gin/error-handler"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"github.com/wisdom-oss/common-go/v3/middleware/gin/jwt"
 	"github.com/wisdom-oss/common-go/v3/middleware/gin/recoverer"
+
+	errorHandler "github.com/wisdom-oss/common-go/v3/middleware/gin/error-handler"
 )
 
 const ListenAddress = "127.0.0.1:8000"

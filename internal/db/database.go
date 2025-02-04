@@ -8,5 +8,5 @@ import (
 // initialized on import/app startup
 
 // Pool is automatically initialized at the app startup using the init
-// function in the internal package
+// function in the internal package.
 var Pool *pgxpool.Pool
