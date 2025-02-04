@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/rs/zerolog/log"
+
 	healthcheckServer "github.com/wisdom-oss/go-healthcheck/server"
 
 	"microservice/internal"
@@ -16,7 +18,7 @@ import (
 )
 
 // the main function bootstraps the http server and handlers used for this
-// microservice
+// microservice.
 func main() {
 	// create a new logger for the main function
 	l := log.Logger
@@ -35,6 +37,7 @@ func main() {
 	go hcServer.Run()
 
 	r := config.PrepareRouter()
+	r.Use(gzip.Gzip(gzip.BestCompression))
 	r.Use(middlewares.EnablePrivateLayers)
 
 	r.GET("/", routes.LayerOverview)

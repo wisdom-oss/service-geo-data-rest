@@ -6,5 +6,5 @@ import (
 
 // This file contains the globally shared Queries variable
 
-// Queries contains the prepared sql queries from the resources folder
+// Queries contains the prepared sql queries from the resources folder.
 var Queries *dotsql.DotSql

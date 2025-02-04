@@ -7,7 +7,8 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/pb33f/libopenapi"
-	"github.com/pb33f/libopenapi-validator"
+
+	validator "github.com/pb33f/libopenapi-validator"
 )
 
 var apiContract libopenapi.Document
