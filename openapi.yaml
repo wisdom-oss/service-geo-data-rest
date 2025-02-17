@@ -8,7 +8,7 @@ info:
     output for all layers stored.
     Since some layers contain additional information and properties on a
     geometry these are also returned has a hash map
-  version: 2.0.0
+  version: 2.1.0
 servers:
   - url: '/api/geodata'
 
@@ -69,8 +69,8 @@ components:
       type: object
       required:
         - id
-        - name
         - key
+        - name
         - geometry
       properties:
         id:
@@ -78,6 +78,7 @@ components:
           description: database-generated
         name:
           type: string
+          nullable: true
         key:
           type: string
           description: |
