@@ -21,5 +21,4 @@ LABEL org.opencontainers.image.version=$GH_VERSION
 COPY --from=build-service /etc/ssl/cert.pem /etc/ssl/cert.pem
 COPY --from=compressor /compressed-service /service
 ENTRYPOINT ["/service"]
-HEALTHCHECK --interval=30s --timeout=15s CMD /service -healthcheck
 EXPOSE 8000

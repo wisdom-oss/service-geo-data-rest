@@ -48,8 +48,8 @@ func init() {
 	if err != nil {
 		l.Fatal().Err(err).Msg("could not load queries")
 	}
-	var instances []*dotsql.DotSql
-	for _, queryFile := range files {
+	instances := make([]*dotsql.DotSql, len(files))
+	for idx, queryFile := range files {
 		fd, err := resources.QueryFiles.Open(queryFile.Name())
 		if err != nil {
 			l.Fatal().Err(err).Msg("could not open query file")
@@ -58,7 +58,7 @@ func init() {
 		if err != nil {
 			l.Fatal().Err(err).Msg("could not load query file")
 		}
-		instances = append(instances, instance)
+		instances[idx] = instance
 	}
 	Queries = dotsql.Merge(instances...)
 	if err != nil {
