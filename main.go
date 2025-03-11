@@ -40,14 +40,17 @@ func main() {
 	r.Use(gzip.Gzip(gzip.BestCompression))
 	r.Use(middlewares.EnablePrivateLayers)
 
-	r.GET("/", routes.LayerOverview)
-	r.GET("/:layerID", middlewares.ResolveLayer, routes.LayerInformation)
-	r.GET("/identify", routes.IdentifyObject)
-
-	content := r.Group("/content", middlewares.ResolveLayer)
+	v1 := r.Group("/v1")
 	{
-		content.GET("/:layerID", routes.LayerContents)
-		content.GET("/:layerID/filtered", routes.FilteredLayerContents)
+		v1.GET("/", routes.LayerOverview)
+		v1.GET("/:layerID", middlewares.ResolveLayer, routes.LayerInformation)
+		v1.GET("/identify", routes.IdentifyObject)
+
+		content := v1.Group("/content", middlewares.ResolveLayer)
+		{
+			content.GET("/:layerID", routes.LayerContents)
+			content.GET("/:layerID/filtered", routes.FilteredLayerContents)
+		}
 	}
 
 	l.Info().Msg("finished service configuration")
