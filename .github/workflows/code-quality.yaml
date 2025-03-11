@@ -67,6 +67,6 @@ jobs:
           go-version: stable
       - uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.62
+          version: v1.64
           only-new-issues: ${{ github.event_name == 'pull_request'}}
           args: --timeout=5m
