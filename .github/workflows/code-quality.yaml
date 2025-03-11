@@ -69,3 +69,4 @@ jobs:
         with:
           version: v1.62
           only-new-issues: ${{ github.event_name == 'pull_request'}}
+          args: --timeout=5m
