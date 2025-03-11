@@ -48,7 +48,7 @@ func Test_LayerContents_InvalidLayerID(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	if t.Failed() {
-		t.Log(string(w.Body.Bytes()))
+		t.Log(w.Body.String())
 	}
 
 	valid, validationErrors := v.ValidateHttpRequestResponse(req, w.Result())
@@ -77,7 +77,7 @@ func Test_LayerContents_MissingLayerID(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	if t.Failed() {
-		t.Log(string(w.Body.Bytes()))
+		t.Log(w.Body.String())
 	}
 
 	valid, validationErrors := v.ValidateHttpResponse(req, w.Result())

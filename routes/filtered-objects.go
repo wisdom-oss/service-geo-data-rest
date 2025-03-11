@@ -60,16 +60,10 @@ func FilteredLayerContents(c *gin.Context) {
 	switch parameters.Relation {
 	case "within":
 		objects = filteredLayerContents_Within(c, topLayer, parameters.Keys)
-		break
-
 	case "overlaps":
 		objects = filteredLayerContents_Overlaps(c, topLayer, parameters.Keys)
-		break
-
 	case "contains":
 		objects = filteredLayerContents_Contains(c, topLayer, parameters.Keys)
-		break
-
 	default:
 		c.Abort()
 		apiErrors.ErrUnsupportedSpatialRelation.Emit(c)

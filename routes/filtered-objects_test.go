@@ -25,7 +25,7 @@ func Test_FilteredObjects(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	if t.Failed() {
-		t.Log(string(w.Body.Bytes()))
+		t.Log(w.Body.String())
 	}
 
 	valid, validationErrors := v.ValidateHttpRequestResponse(req, w.Result())
@@ -55,7 +55,7 @@ func Test_FilteredObjects_NoObjects(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
 	if t.Failed() {
-		t.Log(string(w.Body.Bytes()))
+		t.Log(w.Body.String())
 	}
 
 	valid, validationErrors := v.ValidateHttpRequestResponse(req, w.Result())
@@ -139,7 +139,7 @@ func Test_FilteredObjects_MissingRelation(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	if t.Failed() {
-		t.Log(string(w.Body.Bytes()))
+		t.Log(w.Body.String())
 	}
 
 	valid, validationErrors := v.ValidateHttpResponse(req, w.Result())
@@ -169,7 +169,7 @@ func Test_FilteredObjects_MissingOtherLayer(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	if t.Failed() {
-		t.Log(string(w.Body.Bytes()))
+		t.Log(w.Body.String())
 	}
 
 	valid, validationErrors := v.ValidateHttpResponse(req, w.Result())
@@ -199,7 +199,7 @@ func Test_FilteredObjects_MissingKeys(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	if t.Failed() {
-		t.Log(string(w.Body.Bytes()))
+		t.Log(w.Body.String())
 	}
 
 	valid, validationErrors := v.ValidateHttpResponse(req, w.Result())
