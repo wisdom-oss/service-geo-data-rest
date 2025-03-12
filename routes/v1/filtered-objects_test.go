@@ -10,7 +10,7 @@ import (
 
 	"microservice/internal/config"
 	"microservice/middlewares"
-	"microservice/routes"
+	"microservice/routes/v1"
 )
 
 func Test_FilteredObjects(t *testing.T) {

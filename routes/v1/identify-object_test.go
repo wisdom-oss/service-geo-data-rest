@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"microservice/internal/config"
-	"microservice/routes"
+	"microservice/routes/v1"
 )
 
 func Test_IdentifyObject(t *testing.T) {

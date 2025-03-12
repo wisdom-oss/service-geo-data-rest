@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gin-gonic/gin"
 
@@ -27,5 +29,8 @@ func LayerContents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, layerContents)
+	c.JSON(http.StatusOK, types.AttributedContents{
+		Attribution: layer.Attribution,
+		Contents:    layerContents,
+	})
 }
