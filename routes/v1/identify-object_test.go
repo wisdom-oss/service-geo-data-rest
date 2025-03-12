@@ -1,3 +1,5 @@
+//nolint
+
 package routes_test
 
 import (
