@@ -14,7 +14,7 @@ import (
 	"microservice/types"
 )
 
-const queryString = `st_%s(st_transform(geometry, 4326), (SELECT st_transform(geometry, 4236) FROM geodata.%s WHERE key = $%d))`
+const queryString = `st_%s(st_transform(geometry, 4326), (SELECT st_transform(geometry, 4236) FROM geodata.%s WHERE key = $%d))` //nolint:lll
 
 func FilteredLayerContents(c *gin.Context) {
 	var parameters struct {
