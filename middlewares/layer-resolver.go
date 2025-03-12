@@ -8,8 +8,10 @@ import (
 	"microservice/internal/db"
 	apiErrors "microservice/internal/errors"
 	"microservice/types"
+	v2 "microservice/types/v2"
 )
 
+// nolint: dupl
 func ResolveLayer(c *gin.Context) {
 	layerID := c.Param("layerID")
 	query, err := db.Queries.Raw("get-layer")
@@ -29,6 +31,47 @@ func ResolveLayer(c *gin.Context) {
 	}
 
 	var layer types.Layer
+	err = pgxscan.Get(c, db.Pool, &layer, query, layerID)
+	if err != nil {
+		c.Abort()
+		if pgxscan.NotFound(err) {
+			apiErrors.ErrUnknownLayer.Emit(c)
+			return
+		}
+		_ = c.Error(err)
+		return
+	}
+
+	if layer.Private && !c.GetBool("AccessPrivateLayers") {
+		c.Abort()
+		apiErrors.ErrLayerPrivate.Emit(c)
+		return
+	}
+
+	c.Set("layer", layer)
+	c.Next()
+}
+
+// nolint: dupl
+func ResolveV2Layer(c *gin.Context) {
+	layerID := c.Param("layerID")
+	query, err := db.Queries.Raw("get-layer")
+	if err != nil {
+		c.Abort()
+		_ = c.Error(err)
+		return
+	}
+
+	if err = uuid.Validate(layerID); err != nil {
+		query, err = db.Queries.Raw("get-layer-by-url-key")
+		if err != nil {
+			c.Abort()
+			_ = c.Error(err)
+			return
+		}
+	}
+
+	var layer v2.Layer
 	err = pgxscan.Get(c, db.Pool, &layer, query, layerID)
 	if err != nil {
 		c.Abort()
