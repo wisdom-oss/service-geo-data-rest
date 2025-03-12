@@ -29,8 +29,5 @@ func LayerContents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.AttributedContents{
-		Attribution: layer.Attribution,
-		Contents:    layerContents,
-	})
+	c.JSON(http.StatusOK, layerContents)
 }
