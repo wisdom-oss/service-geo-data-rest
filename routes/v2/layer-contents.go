@@ -1,12 +1,13 @@
 package v2
 
 import (
-	"microservice/internal/db"
-	"microservice/types"
 	"net/http"
 
-	"github.com/georgysavva/scany/pgxscan"
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gin-gonic/gin"
+
+	"microservice/internal/db"
+	"microservice/types"
 )
 
 func AttributedLayerContents(c *gin.Context) {
