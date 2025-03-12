@@ -1,5 +1,4 @@
-//nolint
-
+//nolint:dupl
 package routes_test
 
 import (
