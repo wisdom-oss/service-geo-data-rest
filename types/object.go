@@ -7,6 +7,13 @@ import (
 	"github.com/twpayne/go-geom/encoding/geojson"
 )
 
+const geometryDecimalPrecision = 15
+
+var defaultEncodingParameters = []geojson.EncodeGeometryOption{
+	geojson.EncodeGeometryWithBBox(),
+	geojson.EncodeGeometryWithMaxDecimalDigits(geometryDecimalPrecision),
+}
+
 // Object represents a single object contained in a Layer
 // As the marshaling of the object is a bit complex due to the geometry
 // requiring an extra marshaling step the MarshalJSON function has been
@@ -41,6 +48,6 @@ func (o Object) MarshalJSON() ([]byte, error) {
 		Key:                  o.Key,
 		AdditionalProperties: o.AdditionalProperties,
 	}
-	output.Geometry, _ = geojson.Marshal(o.Geometry, geojson.EncodeGeometryWithBBox(), geojson.EncodeGeometryWithMaxDecimalDigits(15))
+	output.Geometry, _ = geojson.Marshal(o.Geometry, defaultEncodingParameters...)
 	return json.Marshal(output)
 }
