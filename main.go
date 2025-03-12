@@ -15,6 +15,7 @@ import (
 	"microservice/internal/db"
 	"microservice/middlewares"
 	v1Routes "microservice/routes/v1"
+	v2Routes "microservice/routes/v2"
 )
 
 // the main function bootstraps the http server and handlers used for this
@@ -50,6 +51,16 @@ func main() {
 		{
 			content.GET("/:layerID", v1Routes.LayerContents)
 			content.GET("/:layerID/filtered", v1Routes.FilteredLayerContents)
+		}
+	}
+
+	v2 := r.Group("/v2")
+	{
+		v2.GET("/", v2Routes.LayerOverview)
+
+		content := v2.Group("/content/:layerID", middlewares.ResolveV2Layer)
+		{
+			content.GET("/", v2Routes.AttributedLayerContents)
 		}
 	}
 
