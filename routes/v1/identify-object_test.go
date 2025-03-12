@@ -17,10 +17,10 @@ import (
 func Test_IdentifyObject(t *testing.T) {
 	router := gin.New()
 	router.Use(config.Middlewares()...)
-	router.GET("/identify", routes.IdentifyObject)
+	router.GET("/v1/identify", routes.IdentifyObject)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/identify?key=03", nil)
+	req, _ := http.NewRequest("GET", "/v1/identify?key=03", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -46,10 +46,10 @@ func Test_IdentifyObject(t *testing.T) {
 func Test_IdentifyObject_MissingKeys(t *testing.T) {
 	router := gin.New()
 	router.Use(config.Middlewares()...)
-	router.GET("/identify", routes.IdentifyObject)
+	router.GET("/v1/identify", routes.IdentifyObject)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/identify", nil)
+	req, _ := http.NewRequest("GET", "/v1/identify", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)

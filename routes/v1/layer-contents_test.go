@@ -18,10 +18,10 @@ import (
 func Test_LayerContents(t *testing.T) {
 	router := gin.New()
 	router.Use(config.Middlewares()...)
-	router.GET("/content/:layerID/", middlewares.ResolveLayer, routes.LayerContents)
+	router.GET("/v1/content/:layerID/", middlewares.ResolveLayer, routes.LayerContents)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/content/1e694f36-cf68-426a-b6a3-7660163b03e6/", nil)
+	req, _ := http.NewRequest("GET", "/v1/content/1e694f36-cf68-426a-b6a3-7660163b03e6/", nil)
 	router.ServeHTTP(w, req)
 
 	valid, validationErrors := v.ValidateHttpRequestResponse(req, w.Result())
@@ -42,10 +42,10 @@ func Test_LayerContents(t *testing.T) {
 func Test_LayerContents_InvalidLayerID(t *testing.T) {
 	router := gin.New()
 	router.Use(config.Middlewares()...)
-	router.GET("/content/:layerID/", middlewares.ResolveLayer, routes.LayerContents)
+	router.GET("/v1/content/:layerID/", middlewares.ResolveLayer, routes.LayerContents)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/content/invalid-layer-id/", nil)
+	req, _ := http.NewRequest("GET", "/v1/content/invalid-layer-id/", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -71,10 +71,10 @@ func Test_LayerContents_InvalidLayerID(t *testing.T) {
 func Test_LayerContents_MissingLayerID(t *testing.T) {
 	router := gin.New()
 	router.Use(config.Middlewares()...)
-	router.GET("/content/:layerID/", middlewares.ResolveLayer, routes.LayerContents)
+	router.GET("/v1/content/:layerID/", middlewares.ResolveLayer, routes.LayerContents)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/content//", nil)
+	req, _ := http.NewRequest("GET", "/v1/content//", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)

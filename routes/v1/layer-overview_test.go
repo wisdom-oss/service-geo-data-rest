@@ -17,10 +17,10 @@ import (
 func Test_LayerOverview(t *testing.T) {
 	router := gin.New()
 	router.Use(config.Middlewares()...)
-	router.GET("/", routes.LayerOverview)
+	router.GET("/v1/", routes.LayerOverview)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/v1/", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)

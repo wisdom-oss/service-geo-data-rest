@@ -18,7 +18,7 @@ var v validator.Validator
 func TestMain(m *testing.M) {
 	_ = godotenv.Load(".env", "../.env")
 
-	apiContractFile, err := os.Open("../openapi.yaml")
+	apiContractFile, err := os.Open("../../openapi.yaml")
 	if err != nil {
 		panic(err)
 	}

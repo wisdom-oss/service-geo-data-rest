@@ -18,10 +18,10 @@ import (
 func Test_LayerInformation(t *testing.T) {
 	router := gin.New()
 	router.Use(config.Middlewares()...)
-	router.GET("/:layerID/", middlewares.ResolveLayer, routes.LayerInformation)
+	router.GET("/v1/:layerID/", middlewares.ResolveLayer, routes.LayerInformation)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/1e694f36-cf68-426a-b6a3-7660163b03e6/", nil)
+	req, _ := http.NewRequest("GET", "/v1/1e694f36-cf68-426a-b6a3-7660163b03e6/", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -47,10 +47,10 @@ func Test_LayerInformation(t *testing.T) {
 func Test_LayerInformation_InvalidLayerID(t *testing.T) {
 	router := gin.New()
 	router.Use(config.Middlewares()...)
-	router.GET("/:layerID/", middlewares.ResolveLayer, routes.LayerInformation)
+	router.GET("/v1/:layerID/", middlewares.ResolveLayer, routes.LayerInformation)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/invalid/", nil)
+	req, _ := http.NewRequest("GET", "/v1/invalid/", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)

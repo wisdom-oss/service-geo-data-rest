@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -12,6 +13,8 @@ import (
 	apiErrors "microservice/internal/errors"
 	"microservice/types"
 )
+
+const queryString = `st_%s(st_transform(geometry, 4326), (SELECT st_transform(geometry, 4236) FROM geodata.%s WHERE key = $%d))`
 
 func FilteredLayerContents(c *gin.Context) {
 	var parameters struct {
@@ -58,12 +61,35 @@ func FilteredLayerContents(c *gin.Context) {
 
 	var objects []types.Object
 	switch parameters.Relation {
-	case "within":
-		objects = filteredLayerContents_Within(c, topLayer, parameters.Keys)
-	case "overlaps":
-		objects = filteredLayerContents_Overlaps(c, topLayer, parameters.Keys)
-	case "contains":
-		objects = filteredLayerContents_Contains(c, topLayer, parameters.Keys)
+	case "within", "overlaps", "contains":
+		bottomLayerIface, _ := c.Get("layer")
+		bottomLayer, _ := bottomLayerIface.(types.Layer)
+
+		queryParts := make([]string, len(c.Keys))
+		queryParameters := make([]string, len(c.Keys))
+
+		for idx, key := range parameters.Keys {
+			queryParts[idx] = fmt.Sprintf(queryString, parameters.Relation, bottomLayer.TableName, idx+1)
+			queryParameters[idx] = key
+		}
+
+		queryClause := strings.Join(queryParts, ` OR `)
+
+		baseLayerQuery, err := bottomLayer.ContentQuery()
+		if err != nil {
+			c.Abort()
+			_ = c.Error(err)
+			return
+		}
+
+		query := fmt.Sprintf(`%s WHERE %s;`, strings.TrimSuffix(baseLayerQuery, ";"), queryClause)
+		err = pgxscan.Select(c, db.Pool, &objects, query, queryParameters)
+		if err != nil {
+			c.Abort()
+			_ = c.Error(err)
+			return
+		}
+
 	default:
 		c.Abort()
 		apiErrors.ErrUnsupportedSpatialRelation.Emit(c)
@@ -71,92 +97,9 @@ func FilteredLayerContents(c *gin.Context) {
 	}
 
 	if len(objects) == 0 {
-		c.Status(204)
+		c.Status(http.StatusNoContent)
 		return
 	}
 
-	c.JSON(200, objects)
-}
-
-func filteredLayerContents_Within(c *gin.Context, topLayer types.Layer, keys []string) []types.Object {
-	layerInterface, _ := c.Get("layer")
-	baseLayer, _ := layerInterface.(types.Layer)
-
-	var queryParts []string
-	var queryParams []interface{}
-	for idx, key := range keys {
-		queryParts = append(queryParts,
-			fmt.Sprintf(`ST_WITHIN(st_transform(geometry, 4326), (SELECT st_transform(geometry, 4326) FROM geodata.%s WHERE key = $%d))`,
-				topLayer.TableName, idx+1))
-		queryParams = append(queryParams, key)
-	}
-
-	queryCondition := strings.Join(queryParts, " OR ")
-
-	baseQuery, _ := baseLayer.ContentQuery()
-	query := fmt.Sprintf("%s WHERE %s;", strings.TrimSuffix(baseQuery, ";"), queryCondition)
-	var layerContents []types.Object
-	err := pgxscan.Select(c, db.Pool, &layerContents, query, queryParams...)
-	if err != nil {
-		c.Abort()
-		_ = c.Error(err)
-		return nil
-	}
-
-	return layerContents
-}
-
-func filteredLayerContents_Overlaps(c *gin.Context, topLayer types.Layer, keys []string) []types.Object {
-	layerInterface, _ := c.Get("layer")
-	baseLayer, _ := layerInterface.(types.Layer)
-
-	var queryParts []string
-	var queryParams []interface{}
-	for idx, key := range keys {
-		queryParts = append(queryParts,
-			fmt.Sprintf(`ST_OVERLAPS(st_transform(geometry, 4326), (SELECT st_transform(geometry, 4326) FROM geodata.%s WHERE key = $%d))`,
-				topLayer.TableName, idx+1))
-		queryParams = append(queryParams, key)
-	}
-
-	queryCondition := strings.Join(queryParts, " OR ")
-
-	baseQuery, _ := baseLayer.ContentQuery()
-	query := fmt.Sprintf("%s WHERE %s;", strings.TrimSuffix(baseQuery, ";"), queryCondition)
-	var layerContents []types.Object
-	err := pgxscan.Select(c, db.Pool, &layerContents, query, queryParams...)
-	if err != nil {
-		c.Abort()
-		_ = c.Error(err)
-		return nil
-	}
-
-	return layerContents
-}
-
-func filteredLayerContents_Contains(c *gin.Context, topLayer types.Layer, keys []string) []types.Object {
-	layerInterface, _ := c.Get("layer")
-	baseLayer, _ := layerInterface.(types.Layer)
-
-	var queryParts []string
-	var queryParams []interface{}
-	for idx, key := range keys {
-		queryParts = append(queryParts,
-			fmt.Sprintf(`ST_CONTAINS(st_transform(geometry, 4326), (SELECT st_transform(geometry, 4326) FROM geodata.%s WHERE key = $%d))`,
-				topLayer.TableName, idx+1))
-		queryParams = append(queryParams, key)
-	}
-
-	queryCondition := strings.Join(queryParts, " OR ")
-
-	baseQuery, _ := baseLayer.ContentQuery()
-	query := fmt.Sprintf("%s WHERE %s;", strings.TrimSuffix(baseQuery, ";"), queryCondition)
-	var layerContents []types.Object
-	err := pgxscan.Select(c, db.Pool, &layerContents, query, queryParams...)
-	if err != nil {
-		c.Abort()
-		_ = c.Error(err)
-		return nil
-	}
-	return layerContents
+	c.JSON(http.StatusOK, objects)
 }
