@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"github.com/georgysavva/scany/v2/dbscan"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -30,8 +31,23 @@ func ResolveLayer(c *gin.Context) {
 		}
 	}
 
+	// generate custom pgxscan instance which allows unknown fields
+	api, err := dbscan.NewAPI(dbscan.WithAllowUnknownColumns(true))
+	if err != nil {
+		c.Abort()
+		_ = c.Error(err)
+		return
+	}
+
+	scanner, err := pgxscan.NewAPI(api)
+	if err != nil {
+		c.Abort()
+		_ = c.Error(err)
+		return
+	}
+
 	var layer types.Layer
-	err = pgxscan.Get(c, db.Pool, &layer, query, layerID)
+	err = scanner.Get(c, db.Pool, &layer, query, layerID)
 	if err != nil {
 		c.Abort()
 		if pgxscan.NotFound(err) {
