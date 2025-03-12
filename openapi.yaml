@@ -244,7 +244,7 @@ paths:
           description: No Objects available after filter application
         400:
           $ref: '#/components/responses/BadRequest'
-  /identify:
+  /v1/identify:
     get:
       parameters:
         - in: query
@@ -269,3 +269,29 @@ paths:
                       $ref: '#/components/schemas/Object'
         400:
           $ref: '#/components/responses/BadRequest'
+
+  /v2/content/{layer-ref}/:
+    parameters:
+      - $ref: '#/components/parameters/LayerID'
+    get:
+      summary: Layer Contents
+      responses:
+        403:
+          $ref: '#/components/responses/PrivateLayer'
+        404:
+          $ref: '#/components/responses/UnknownLayer'
+        200:
+          description: The layers contents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attribution:
+                    type: string
+                    description: |
+                      The attribution for the received data
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Object"
