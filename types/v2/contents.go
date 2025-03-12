@@ -7,6 +7,7 @@ import (
 )
 
 type AttributedContents struct {
-	Attribution pgtype.Text    `json:"attribution"`
-	Contents    []types.Object `json:"data"`
+	Attribution    pgtype.Text    `json:"attribution"`
+	AttributionURL pgtype.Text    `json:"attributionURL"`
+	Contents       []types.Object `json:"data"`
 }

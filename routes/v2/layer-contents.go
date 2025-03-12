@@ -1,4 +1,4 @@
-package v2
+package v2Routes
 
 import (
 	"net/http"
@@ -8,11 +8,12 @@ import (
 
 	"microservice/internal/db"
 	"microservice/types"
+	v2 "microservice/types/v2"
 )
 
 func AttributedLayerContents(c *gin.Context) {
 	layerIface, _ := c.Get("layer")
-	layer, _ := layerIface.(types.Layer)
+	layer, _ := layerIface.(v2.Layer)
 
 	query, err := layer.ContentQuery()
 	if err != nil {
@@ -29,8 +30,9 @@ func AttributedLayerContents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, types.AttributedContents{
-		Attribution: layer.Attribution,
-		Contents:    layerContents,
+	c.JSON(http.StatusOK, v2.AttributedContents{
+		Attribution:    layer.Attribution,
+		AttributionURL: layer.AttributionURL,
+		Contents:       layerContents,
 	})
 }
