@@ -269,6 +269,22 @@ paths:
                       $ref: '#/components/schemas/Object'
         400:
           $ref: '#/components/responses/BadRequest'
+  /v2/:
+    get:
+      summary: Retrieve available Layers
+      responses:
+        200:
+          description: Layers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/Layer"
+                    - properties:
+                        attributionUrl:
+                          type: string
 
   /v2/content/{layer-ref}/:
     parameters:
