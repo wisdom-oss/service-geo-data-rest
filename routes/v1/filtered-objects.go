@@ -14,7 +14,7 @@ import (
 	"microservice/types"
 )
 
-const queryString = `st_%s(st_transform(geometry, 4326), (SELECT st_transform(geometry, 4236) FROM geodata.%s WHERE key = $%d))` //nolint:lll
+const queryString = `st_%s(st_transform(geometry, 4326), (SELECT st_transform(geometry, 4326) FROM geodata.%s WHERE key = $%d))` //nolint:lll
 
 func FilteredLayerContents(c *gin.Context) {
 	var parameters struct {
@@ -48,7 +48,7 @@ func FilteredLayerContents(c *gin.Context) {
 	}
 
 	var topLayer types.Layer
-	err = pgxscan.Get(c, db.Pool, &topLayer, query, parameters.OtherLayer)
+	err = scanner.Get(c, db.Pool, &topLayer, query, parameters.OtherLayer)
 	if err != nil {
 		c.Abort()
 		if pgxscan.NotFound(err) {
@@ -65,8 +65,8 @@ func FilteredLayerContents(c *gin.Context) {
 		bottomLayerIface, _ := c.Get("layer")
 		bottomLayer, _ := bottomLayerIface.(types.Layer)
 
-		queryParts := make([]string, len(c.Keys))
-		queryParameters := make([]string, len(c.Keys))
+		queryParts := make([]string, len(parameters.Keys))
+		queryParameters := make([]any, len(parameters.Keys))
 
 		for idx, key := range parameters.Keys {
 			queryParts[idx] = fmt.Sprintf(queryString, parameters.Relation, bottomLayer.TableName, idx+1)
@@ -83,7 +83,7 @@ func FilteredLayerContents(c *gin.Context) {
 		}
 
 		query := fmt.Sprintf(`%s WHERE %s;`, strings.TrimSuffix(baseLayerQuery, ";"), queryClause)
-		err = pgxscan.Select(c, db.Pool, &objects, query, queryParameters)
+		err = scanner.Select(c, db.Pool, &objects, query, queryParameters...)
 		if err != nil {
 			c.Abort()
 			_ = c.Error(err)
