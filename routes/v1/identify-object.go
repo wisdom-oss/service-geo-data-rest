@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/georgysavva/scany/v2/dbscan"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gin-gonic/gin"
 
@@ -17,7 +18,7 @@ func IdentifyObject(c *gin.Context) {
 		Keys []string `binding:"required" form:"key" json:"keys"`
 	}
 
-	if err := c.ShouldBind(&parameters); err != nil {
+	if err := c.ShouldBindQuery(&parameters); err != nil {
 		c.Abort()
 		apiErrors.ErrMissingParameter.Emit(c)
 		return
@@ -29,9 +30,22 @@ func IdentifyObject(c *gin.Context) {
 		_ = c.Error(err)
 		return
 	}
+	api, err := dbscan.NewAPI(dbscan.WithAllowUnknownColumns(true))
+	if err != nil {
+		c.Abort()
+		_ = c.Error(err)
+		return
+	}
+
+	scanner, err := pgxscan.NewAPI(api)
+	if err != nil {
+		c.Abort()
+		_ = c.Error(err)
+		return
+	}
 
 	var layers []types.Layer
-	err = pgxscan.Select(c, db.Pool, &layers, query, c.GetBool("AccessPrivateLayers"))
+	err = scanner.Select(c, db.Pool, &layers, query, c.GetBool("AccessPrivateLayers"))
 	if err != nil {
 		c.Abort()
 		_ = c.Error(err)

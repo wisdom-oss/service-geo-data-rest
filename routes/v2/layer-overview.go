@@ -1,4 +1,4 @@
-package routes
+package v2Routes
 
 import (
 	"net/http"
@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"microservice/internal/db"
-	"microservice/types"
+	v2 "microservice/types/v2"
 )
 
 func LayerOverview(c *gin.Context) {
@@ -18,7 +18,7 @@ func LayerOverview(c *gin.Context) {
 		return
 	}
 
-	var layers []types.Layer
+	var layers []v2.Layer
 	err = pgxscan.Select(c, db.Pool, &layers, query, c.GetBool("AccessPrivateLayers"))
 	if err != nil {
 		c.Abort()

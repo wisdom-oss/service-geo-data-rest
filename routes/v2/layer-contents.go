@@ -1,16 +1,19 @@
-package routes
+package v2Routes
 
 import (
+	"net/http"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gin-gonic/gin"
 
 	"microservice/internal/db"
 	"microservice/types"
+	v2 "microservice/types/v2"
 )
 
-func LayerContents(c *gin.Context) {
-	layerInterface, _ := c.Get("layer")
-	layer, _ := layerInterface.(types.Layer)
+func AttributedLayerContents(c *gin.Context) {
+	layerIface, _ := c.Get("layer")
+	layer, _ := layerIface.(v2.Layer)
 
 	query, err := layer.ContentQuery()
 	if err != nil {
@@ -27,5 +30,9 @@ func LayerContents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, layerContents)
+	c.JSON(http.StatusOK, v2.AttributedContents{
+		Attribution:    layer.Attribution,
+		AttributionURL: layer.AttributionURL,
+		Contents:       layerContents,
+	})
 }

@@ -14,7 +14,8 @@ import (
 	"microservice/internal/config"
 	"microservice/internal/db"
 	"microservice/middlewares"
-	"microservice/routes"
+	v1Routes "microservice/routes/v1"
+	v2Routes "microservice/routes/v2"
 )
 
 // the main function bootstraps the http server and handlers used for this
@@ -40,14 +41,27 @@ func main() {
 	r.Use(gzip.Gzip(gzip.BestCompression))
 	r.Use(middlewares.EnablePrivateLayers)
 
-	r.GET("/", routes.LayerOverview)
-	r.GET("/:layerID", middlewares.ResolveLayer, routes.LayerInformation)
-	r.GET("/identify", routes.IdentifyObject)
-
-	content := r.Group("/content", middlewares.ResolveLayer)
+	v1 := r.Group("/v1")
 	{
-		content.GET("/:layerID", routes.LayerContents)
-		content.GET("/:layerID/filtered", routes.FilteredLayerContents)
+		v1.GET("/", v1Routes.LayerOverview)
+		v1.GET("/:layerID", middlewares.ResolveLayer, v1Routes.LayerInformation)
+		v1.GET("/identify", v1Routes.IdentifyObject)
+
+		content := v1.Group("/content", middlewares.ResolveLayer)
+		{
+			content.GET("/:layerID", v1Routes.LayerContents)
+			content.GET("/:layerID/filtered", v1Routes.FilteredLayerContents)
+		}
+	}
+
+	v2 := r.Group("/v2")
+	{
+		v2.GET("/", v2Routes.LayerOverview)
+
+		content := v2.Group("/content/:layerID", middlewares.ResolveV2Layer)
+		{
+			content.GET("/", v2Routes.AttributedLayerContents)
+		}
 	}
 
 	l.Info().Msg("finished service configuration")
