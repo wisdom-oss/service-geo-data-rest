@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE SCHEMA IF NOT EXISTS geodata;
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TABLE IF NOT EXISTS
     geodata.layers (
