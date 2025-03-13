@@ -4,8 +4,8 @@ SELECT
 FROM
     geodata.layers
 WHERE
-    private = false OR
-    private = $1;
+    (private = false OR
+    private = $1);
 
 -- name: get-layer
 SELECT
