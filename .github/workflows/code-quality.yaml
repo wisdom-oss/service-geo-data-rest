@@ -18,7 +18,7 @@ jobs:
     if: github.event_name != 'schedule'
     services:
       postgres:
-        image: postgres
+        image: timescale/timescaledb-ha:pg16.2-ts2.14.2-all
         ports:
           - 5432:5432
         env:
